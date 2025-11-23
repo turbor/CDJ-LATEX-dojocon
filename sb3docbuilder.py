@@ -7,7 +7,38 @@ from logging import exception
 from dataclasses import dataclass
 from textwrap import indent
 import re
+from pprint import pprint
 
+
+@dataclass(frozen=True)
+class Monitor:
+    id: str
+    mode: str
+    opcode: str
+    params: dict
+    value: str
+    width: int
+    height: int
+    x: int
+    y: int
+    visible: bool
+    sliderMin: int|None
+    sliderMax: int|None
+    isDiscrete: bool|None
+    def dumpInfo(self ):
+        #pprint(self, indent=2)
+        print(self.opcode + ": " + self.params.get('LIST' if self.mode=="list" else 'VARIABLE',"?") )
+        match self.mode:
+            case "default":
+                print(f"Value: {self.value}")
+            case "large":
+                print(f"Value: {self.value}")
+            case "list":
+                print(f"List: {self.value}")
+            case "slider":
+                print(f"Slider: {self.value}")
+                print(f"   Min: {self.sliderMin}  Max: {self.sliderMax}  Discrete: {self.isDiscrete}")
+        print(f"Visible: {self.visible} \n")
 
 @dataclass
 class Sprite:
@@ -18,11 +49,11 @@ class Sprite:
     broadcasts: dict
     blocksAST: dict
     comments: dict
-    currentCostume: str
+    currentCostume: int
     costumes: list
     sounds: list
-    layerOrder: str
-    volume: str
+    layerOrder: int
+    volume: int
 
     def dumpBlocks(self, args):
         for name, block in self.blocksAST.items():
@@ -44,10 +75,53 @@ class Block:
     x: int  # X coordinate
     y: int  # Y coordinate
 
+def list2block(block):
+    """ block store as an array instead of a dict.
+    This is for variables,list and direct values like numbers,angles,strings,colors,..."""
+    print(f"list2block {block}")
+    if block[0] >3 and block[0] <9:
+        #4=number,5=positive number,6=positive integer,7=integer,8=angle
+        val = block[1]
+        print(f"const:  {val}")
+    elif block[0] == 9:
+        #9=color
+        val = block[1]
+        print(f"color:  {val}")
+    elif block[0] == 10:
+        #string
+        val = block[1]
+        print(f"string:  {val}")
+    elif block[0] == 11:
+        #Broadcast message
+        val = block[1]
+        print(f"broadcast:  {val}")
+    elif block[0] == 12:
+        #variable
+        val = block[1]
+        id = block[2]
+        x = None
+        y = None
+        if len(block) > 3:
+            x = block[3]
+            y = block[4]
+        print(f"variable:  '{val}' id:{id}")
+    elif block[0] == 13:
+        val = block[1]
+        id = block[2]
+        x = None
+        y = None
+        if len(block) > 3:
+            x = block[3]
+            y = block[4]
+        print(f"list:  '{val}' id:{id}")
+    else:
+        print(f"unknown listblock {block}")
+
 
 translate = {}
 opcodetranslate = {}
 data = {}
+
 
 def read_translation_files(args: dict):
     #read the translation files
@@ -82,11 +156,11 @@ def decodeBlocksField(input: dict, blocksAST: dict):
 def decocodeInputArray(arr, blocksAST: dict):
     if isinstance(arr, str):
         #this is a shadow block, so the string is the block name
-        shad=blocksAST[arr]
+        shad = blocksAST[arr]
         #quick hack to get fields
-        n=""
-        for fname,fval in shad.fields.items():
-            n+=fval[0]
+        n = ""
+        for fname, fval in shad.fields.items():
+            n += fval[0]
         return (n, n, n)
     if isinstance(arr, list):
         numid = arr[0]
@@ -150,11 +224,11 @@ def outputBlocks(block: Block, ident: int, blocksAST: dict, args: argparse.Names
 
         # decode the fields if any are specified
         if len(block.fields) > 0:
-            fields = decodeBlocksField(block.fields,blocksAST)
+            fields = decodeBlocksField(block.fields, blocksAST)
 
         # decode the inputs if any are specified
         if len(block.inputs) > 0:
-            (substack1, substack2, inputs) = decodeBlocksInput(block.inputs,blocksAST)
+            (substack1, substack2, inputs) = decodeBlocksInput(block.inputs, blocksAST)
             #Quick fix for some translations
             if block.opcode.upper() == "MOTION_TURNLEFT":
                 inputs.insert(0, translateOpcode("left"))
@@ -216,10 +290,14 @@ def get_json_info(filename):
 def buildAST(blocks, args):
     """Builds a the list of scratch blocks.
     They are stored in a dictionary with the block name as key, but using
-    the next,inputs and fields pointers the are in effect an Abstract Syntax Tree (AST)"""
+    the next,inputs and fields pointers the are in effect an Abstract Syntax Tree (AST)
+
+    Note that sometimes blocks are not dicts but lists"""
     blocksAST = {}
     for name, block in blocks.items():
-        blocksAST[name] = Block(block['opcode'],
+        print(f"Building AST for block {name} {block}")
+        if isinstance(block, dict):
+            blocksAST[name] = Block(block['opcode'],
                                 block['next'],
                                 block['parent'],
                                 block['inputs'],
@@ -228,7 +306,28 @@ def buildAST(blocks, args):
                                 block['topLevel'],
                                 block.get('x'),
                                 block.get('y'))
+        elif isinstance(block, list):
+            #blocksAST[name] = None
+            list2block(block)
+
     return blocksAST
+
+
+def create_monitor(monitor: dict, args):
+    return Monitor(monitor['id'],
+                   monitor['mode'],
+                   monitor['opcode'],
+                   monitor['params'],
+                   monitor['value'],
+                   monitor['width'],
+                   monitor['height'],
+                   monitor['x'],
+                   monitor['y'],
+                   monitor['visible'],
+                   monitor.get('sliderMin',None),
+                   monitor.get('sliderMax',None),
+                   monitor.get('isDiscrete',None)
+                   )
 
 
 def create_sprite(target, args):
@@ -251,6 +350,16 @@ def create_sprite(target, args):
     sprite.blocksAST = buildAST(target['blocks'], args)
     return sprite
 
+def print_boxed(title: str):
+    print("+-" + "-" * len(title) + "-+")
+    print(f"| {title} |")
+    print("+-" + "-" * len(title) + "-+")
+
+def print_underlined(title: str):
+    print(f"\n\n {title} ")
+    print("=" * max (20, 2 + len(title)) )
+
+
 
 def main(args):
     global data
@@ -259,19 +368,27 @@ def main(args):
     except Exception as e:
         print(e)
         sys.exit(1)
+
+    print_boxed("Monitors")
+    for monitor in data['monitors']:
+        monitor_object = create_monitor(monitor, args)
+        monitor_object.dumpInfo()
+
+    print_boxed("Targets")
     for target in data['targets']:
         if not args.sprite or target['name'] in args.sprite:
-            print()
-            print()
-            print(target['name'])
-            print("=" * 20)
+            print_underlined(target['name'])
             sprite_object = create_sprite(target, args)
             sprite_object.dumpBlocks(args)
 
-    if args.verbose:
-        print("\n\ndump of project.json\n"
-              "====================")
-        print(json.dumps(data,indent=2))  # Press Ctrl+F8 to toggle the breakpoint.
+    print_boxed("Metadata")
+    for target in data['meta']:
+        print(f"{target:>7}: {data['meta'][target]}")
+
+    if args.verbosity:
+        print("\n\n")
+        print_underlined("Dump of project.json")
+        print(json.dumps(data, indent=2))
 
 
 if __name__ == '__main__':
