@@ -75,10 +75,13 @@ class Block:
     x: int  # X coordinate
     y: int  # Y coordinate
 
-def list2block(block):
+def convert_list_to_block(block):
     """ block store as an array instead of a dict.
     This is for variables,list and direct values like numbers,angles,strings,colors,..."""
-    print(f"list2block {block}")
+    print(f"convert_list_to_block {block}")
+    opcode="data_variable" # most cases are single value variables
+    x = None
+    y = None
     if block[0] >3 and block[0] <9:
         #4=number,5=positive number,6=positive integer,7=integer,8=angle
         val = block[1]
@@ -99,13 +102,12 @@ def list2block(block):
         #variable
         val = block[1]
         id = block[2]
-        x = None
-        y = None
         if len(block) > 3:
             x = block[3]
             y = block[4]
         print(f"variable:  '{val}' id:{id}")
     elif block[0] == 13:
+        opcode="data_listcontents"
         val = block[1]
         id = block[2]
         x = None
@@ -116,6 +118,15 @@ def list2block(block):
         print(f"list:  '{val}' id:{id}")
     else:
         print(f"unknown listblock {block}")
+    return Block(opcode,
+          "", #block['next']
+          "", #block['parent']
+          {}, #block['inputs'],
+          {}, #block['fields'],
+          False, #block['shadow'],
+          False, #block['topLevel'],
+          x,
+          y)
 
 
 translate = {}
@@ -307,8 +318,7 @@ def buildAST(blocks, args):
                                 block.get('x'),
                                 block.get('y'))
         elif isinstance(block, list):
-            #blocksAST[name] = None
-            list2block(block)
+            blocksAST[name] = convert_list_to_block(block)
 
     return blocksAST
 
@@ -368,6 +378,14 @@ def main(args):
     except Exception as e:
         print(e)
         sys.exit(1)
+
+    print_boxed("Extensions used")
+    if len(data['extensions']) == 0:
+        print("No extra extensions used.")
+    else:
+        for ext in data['extensions']:
+            print(f"* {ext}")
+    print()
 
     print_boxed("Monitors")
     for monitor in data['monitors']:
