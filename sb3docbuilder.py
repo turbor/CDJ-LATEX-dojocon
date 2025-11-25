@@ -13,23 +13,7 @@ from sprite import Sprite
 from monitor import Monitor
 from translator import Translator
 
-
-
-
 data = {}
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 def parse_cli_arguments():
     parser = argparse.ArgumentParser(
@@ -70,18 +54,7 @@ def buildAST(blocks, args):
     blocksAST = {}
     for name, block in blocks.items():
         print(f"Building AST for block {name} {block}")
-        if isinstance(block, dict):
-            blocksAST[name] = Block(block['opcode'],
-                                block['next'],
-                                block['parent'],
-                                block['inputs'],
-                                block['fields'],
-                                block['shadow'],
-                                block['topLevel'],
-                                block.get('x'),
-                                block.get('y'))
-        elif isinstance(block, list):
-            blocksAST[name] = Block.convert_list_to_block(block)
+        blocksAST[name] = Block.factory(block)
 
     return blocksAST
 
@@ -142,29 +115,32 @@ def main(args):
         print(e)
         sys.exit(1)
 
-    print_boxed("Extensions used")
-    if len(data['extensions']) == 0:
-        print("No extra extensions used.")
-    else:
-        for ext in data['extensions']:
-            print(f"* {ext}")
-    print()
+    if not args.sprite:
+        print_boxed("Extensions used")
+        if len(data['extensions']) == 0:
+            print("No extra extensions used.")
+        else:
+            for ext in data['extensions']:
+                print(f"* {ext}")
+        print()
 
-    print_boxed("Monitors")
-    for monitor in data['monitors']:
-        monitor_object = create_monitor(monitor, args)
-        monitor_object.dumpInfo()
+        print_boxed("Monitors")
+        for monitor in data['monitors']:
+            monitor_object = create_monitor(monitor, args)
+            monitor_object.dumpInfo()
 
-    print_boxed("Targets")
+        print_boxed("Targets")
+
     for target in data['targets']:
         if not args.sprite or target['name'] in args.sprite:
             print_underlined(target['name'])
             sprite_object = create_sprite(target, args)
             sprite_object.dumpBlocks(args)
 
-    print_boxed("Metadata")
-    for target in data['meta']:
-        print(f"{target:>7}: {data['meta'][target]}")
+    if not args.sprite:
+        print_boxed("Metadata")
+        for target in data['meta']:
+            print(f"{target:>7}: {data['meta'][target]}")
 
     if args.verbosity:
         print("\n\n")

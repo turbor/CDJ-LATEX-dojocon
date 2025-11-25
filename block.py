@@ -1,9 +1,25 @@
 from dataclasses import dataclass
+from importlib.metadata import pass_none
+
+from translator import Translator
+from traceback import clear_frames
+import re
+
+# Function to replace %digit with corresponding value used to resolve the translation string
+def replace_placeholders(text, values):
+    try:
+        return re.sub(r'%(\d+)', lambda m: str(values[int(m.group(1)) - 1]) , text)
+    except IndexError:
+        print("Error: Not enough values for placeholders in translation string")
 
 
-@dataclass
+
+
+@dataclass(kw_only=True)
 class Block:
     """Block class to store the scratch block information"""
+
+    # Following fields are directly related to the blockinfo in the 'project.json' file
     opcode: str  # English text describing the block
     next: str  # Next block
     parent: str  # Parent block
@@ -13,6 +29,30 @@ class Block:
     topLevel: bool  # is this a top level block
     x: int  # X coordinate
     y: int  # Y coordinate
+    # These are extra variable that are used in all subclasses
+    color=""
+
+    def getDescription(self,ident):
+        name = self.opcode.upper()
+        # And for translation purposes there is already a special case...
+        if name == "CONTROL_IF_ELSE":
+            name = "CONTROL_IF"
+        return ident + Translator().translateOpcode(name)
+
+    def decode(self, blocksAST: dict):
+        if self.opcode.startswith("operator_"):
+            op = self.opcode.replace("operator_", "")
+            if op == "add" or op == "subtract" or op == "multiply" or op == "divide" \
+                or op == "random" or op == "lt" or op == "equals" or op == "join" \
+                or op == "letter_of" or op == "contains" or op == "mod":
+                    #these are all operators that have two input fields
+                    o_one = self.inputs["NUM1"]
+                    o_two = self.inputs["NUM2"]
+                    pass
+            return Translator().translateOpcode(op)
+
+
+        return "No decode implement yet"
 
     @staticmethod
     def convert_list_to_block(block):
@@ -58,12 +98,83 @@ class Block:
             print(f"list:  '{val}' id:{id}")
         else:
             print(f"unknown listblock {block}")
-        return Block(opcode,
-              "", #block['next']
-              "", #block['parent']
-              {}, #block['inputs'],
-              {}, #block['fields'],
-              False, #block['shadow'],
-              False, #block['topLevel'],
-              x,
-              y)
+        return Block(opcode=opcode,
+              next="", #block['next']
+              parent="", #block['parent']
+              inputs={}, #block['inputs'],
+              fields={}, #block['fields'],
+              shadow=False, #block['shadow'],
+              topLevel=False, #block['topLevel'],
+              x=x,
+              y=y)
+
+    @staticmethod
+    def factory(block: dict):
+        if isinstance(block, dict):
+            match block['opcode'].upper():
+                case "MOTION_TURNLEFT":
+                    return TurnLeftRightBlock(opcode=block['opcode'],
+                                next=block['next'],
+                                parent=block['parent'],
+                                inputs=block['inputs'],
+                                fields=block['fields'],
+                                shadow=block['shadow'],
+                                topLevel=['topLevel'],
+                                x=block.get('x'),
+                                y=block.get('y'),
+                                left=True)
+                case "MOTION_TURNRIGHT":
+                    return TurnLeftRightBlock(opcode=block['opcode'],
+                                next=block['next'],
+                                parent=block['parent'],
+                                inputs=block['inputs'],
+                                fields=block['fields'],
+                                shadow=block['shadow'],
+                                topLevel=['topLevel'],
+                                x=block.get('x'),
+                                y=block.get('y'),
+                                left=False)
+                case _:
+                    return Block(opcode=block['opcode'],
+                                next=block['next'],
+                                parent=block['parent'],
+                                inputs=block['inputs'],
+                                fields=block['fields'],
+                                shadow=block['shadow'],
+                                topLevel=['topLevel'],
+                                x=block.get('x'),
+                                y=block.get('y'))
+        elif isinstance(block, list):
+            return Block.convert_list_to_block(block)
+        raise Exception("Unknown block type")
+
+class SimpleBlock(Block):
+    color = "lightblue"
+
+class SingleMouthBlock(Block):
+    color = "lightgreen"
+
+class DoubleMouthBlock(Block):
+    color = "lightgreen"
+
+class HatBlock(Block):
+    color = "lightblue"
+
+class TurnLeftRightBlock(SimpleBlock):
+    arrow:str
+    def __init__(self,**kwargs):
+        #extract our custom parameter without breaking the base kwargs
+        left=kwargs.pop('left',True)
+        # the rest is for the base class
+        super().__init__(**kwargs)
+        #unicde for turn left and right symbol used in description
+        self.arrow = f"\u27F2" if left else f"\u27F3"
+        # maybe use
+        # self.arrow=Translator().translateOpcode("right") if left else Translator().translateOpcode("right")
+        # if no unicode support
+
+
+    def getDescription(self,ident):
+        desc=super().getDescription(ident)
+        desc=replace_placeholders(desc,[self.arrow,"%1"])
+        return desc
