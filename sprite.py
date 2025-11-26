@@ -51,20 +51,15 @@ class Sprite:
             elif name == 'SUBSTACK2':
                 stack2 = arr[1]
             else:
-                if arr[0] == 1:  # input is a shadow
-                    (numid, val, id) = self.decocodeInputArray(arr[1], blocksAST)
-                elif arr[0] == 2:  # there is no shadow
-                    (numid, val, id) = self.decocodeInputArray(arr[1], blocksAST)
-                elif arr[0] == 3:  # there is a shadow but obscured by the input
-                    (numid, val, id) = self.decocodeInputArray(arr[1], blocksAST)
+                val = Block.decodeInputFieldArray(arr,blocksAST)
                 params.append(val)
         return (stack1, stack2, params)
 
-    def decocodeInputArray(self, arr, blocksAST: dict):
+    def decocodeInputFieldValue(self, arr, blocksAST: dict):
         if isinstance(arr, str):
             # this is a shadow block, so the string is the block name
             shad = blocksAST[arr]
-            n = shad.decode(blocksAST) # recursively decode the shadow block
+            n = shad.decodeShadowBlock(blocksAST) # recursively decode the shadow block
             return (n, n, n)
         if isinstance(arr, list):
             numid = arr[0]

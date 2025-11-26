@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from importlib.metadata import pass_none
+from pprint import pprint
 
 from translator import Translator
 from traceback import clear_frames
@@ -39,17 +40,52 @@ class Block:
             name = "CONTROL_IF"
         return ident + Translator().translateOpcode(name)
 
-    def decode(self, blocksAST: dict):
+    @classmethod
+    def decodeInputFieldValue(self, arr, blocksAST: dict):
+        if isinstance(arr, str):
+            # this is a shadow block, so the string is the block name
+            shad = blocksAST[arr]
+            return shad.decodeShadowBlock(blocksAST) # recursively decode the shadow block
+        if isinstance(arr, list):
+            numid = arr[0]
+            val = arr[1]
+            id = None
+            if len(arr) > 2:
+                id = arr[2]
+            return val
+        return "Block.decodeInputFieldValue() failed"
+
+    @classmethod
+    def decodeInputFieldArray(cls, arr: list, blocksAST: dict):
+        val = "unknown decodeInputFieldArray first element"
+        if arr[0] == 1:  # input is a shadow
+            val = cls.decodeInputFieldValue(arr[1], blocksAST)
+        elif arr[0] == 2:  # there is no shadow
+            val = cls.decodeInputFieldValue(arr[1], blocksAST)
+        elif arr[0] == 3:  # there is a shadow but obscured by the input
+            val = cls.decodeInputFieldValue(arr[1], blocksAST)
+        return val
+
+    def decodeShadowBlock(self, blocksAST: dict):
         if self.opcode.startswith("operator_"):
             op = self.opcode.replace("operator_", "")
             if op == "add" or op == "subtract" or op == "multiply" or op == "divide" \
                 or op == "random" or op == "lt" or op == "equals" or op == "join" \
                 or op == "letter_of" or op == "contains" or op == "mod":
                     #these are all operators that have two input fields
-                    o_one = self.inputs["NUM1"]
-                    o_two = self.inputs["NUM2"]
-                    pass
-            return Translator().translateOpcode(op)
+                    if not "NUM1" in self.inputs:
+                        pprint(self.inputs)
+                        o_one = self.inputs["OPERAND1"]
+                        o_two = self.inputs["OPERAND2"]
+                    else:
+                        o_one = self.inputs["NUM1"]
+                        o_two = self.inputs["NUM2"]
+                    o_one = self.decodeInputFieldValue(o_one, blocksAST)
+                    o_two = self.decodeInputFieldValue(o_two, blocksAST)
+                    val = Translator().translateOpcode("OPERATORS_"+op.upper())
+                    val = replace_placeholders(val,[o_one,o_two])
+                    return val
+            return Translator().translateOpcode(self.opcode.upper())
 
 
         return "No decode implement yet"
