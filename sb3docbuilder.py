@@ -15,6 +15,12 @@ from translator import Translator
 
 data = {}
 
+def check_python_version():
+    """This program uses the match-case construct available since python 3.10"""
+    if sys.version_info.major < 3 and sys.version_info.minor < 10:
+        print("This program requires Python 3.10 or higher")
+        sys.exit(1)
+
 def parse_cli_arguments():
     parser = argparse.ArgumentParser(
         description="Scratch sb3 parser to provide a text or latex representation of the code blocks in the SB3 file")
@@ -53,7 +59,7 @@ def buildAST(blocks, args):
     Note that sometimes blocks are not dicts but lists"""
     blocksAST = {}
     for name, block in blocks.items():
-        print(f"Building AST for block {name} {block}")
+        #print(f"Building AST for block {name} {block}")
         blocksAST[name] = Block.factory(block)
 
     return blocksAST
@@ -149,6 +155,7 @@ def main(args):
 
 
 if __name__ == '__main__':
+    check_python_version()
     args = parse_cli_arguments()
     Translator().read_translation_files(args)
     main(args)

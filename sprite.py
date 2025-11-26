@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from block import Block
+from colorize import Colorize
 from translator import Translator
 import argparse
 import re
@@ -7,11 +8,11 @@ import re
 # Function to replace %digit with corresponding value used to resolve the translation string
 def replace_placeholders(text, values):
     try:
-        re.sub(r'%(\d+)', lambda m: "(" + str(values[int(m.group(1)) - 1]) + ")", text)
+        return re.sub(r'%(\d+)', lambda m: "<" + str(values[int(m.group(1)) - 1]) + ">", text)
     except IndexError:
         print("Error: Not enough values for placeholders in translation string")
 
-    return re.sub(r'%(\d+)', lambda m: "(" + str(values[int(m.group(1)) - 1]) + ")", text)
+    # return re.sub(r'%(\d+)', lambda m: "(" + str(values[int(m.group(1)) - 1]) + ")", text)
 
 
 @dataclass
@@ -106,12 +107,14 @@ class Sprite:
             print(description)
 
             # Check if there is a first C-mouth (while,loop,if-then)
+            newindent = ident + Colorize.color(block.color) + "   " + Colorize.reset + " "
             if substack1 is not None:
-                self.outputBlocks(blocksAST[substack1], ident + "    ", blocksAST, args)
-            # Check if there is a second C-mouth (if-then-else)
-            if substack2 is not None:
-                print(ident + Translator().translateOpcode("CONTROL_ELSE"))
-                self.outputBlocks(blocksAST[substack2], ident + "    ", blocksAST, args)
+                self.outputBlocks(blocksAST[substack1], newindent, blocksAST, args)
+                # Check if there is a second C-mouth (if-then-else)
+                if substack2 is not None:
+                    print(ident + Colorize.color(block.color) + " " + Translator().translateOpcode("CONTROL_ELSE") + " " + Colorize.reset)
+                    self.outputBlocks(blocksAST[substack2], newindent , blocksAST, args)
+                print(ident + Colorize.color(block.color) + "_"*8 +Colorize.reset)
 
             block = blocksAST[block.next] if block.next != None else None
 
