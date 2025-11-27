@@ -58,8 +58,10 @@ class Block:
     @classmethod
     def decodeInputFieldArray(cls, arr: list, blocksAST: dict):
         val = "(unknown decodeInputFieldArray first element \"" + pformat(arr) + "\")"
-        if arr[0] == 1:  # input is a shadow
+        if arr[0] == 1:  # input is a shadow aka simple round input with constant in it
             val = cls.decodeInputFieldValue(arr[1], blocksAST)
+            #color these black on white background
+            val = Colorize.color("white") +f" {val} "
         elif arr[0] == 2:  # there is no shadow
             val = cls.decodeInputFieldValue(arr[1], blocksAST)
         elif arr[0] == 3:  # there is a shadow but obscured by the input
@@ -461,19 +463,21 @@ class OperatorBlock(SimpleBlock):
         "operator_mathop": ["OPERATOR", "NUM"]
     }
     def decodeShadowBlock(self, blocksAST: dict):
-        if self.opcode.startswith("operator_"):
-            operator_inputs=[]
-            for name in self.inputNames[self.opcode]:
-                try:
-                    if name in self.inputs:
-                        inp = self.decodeInputFieldArray(self.inputs[name], blocksAST)
-                    else:
-                        #inp = self.decodeInputFieldArray(self.fields[name], blocksAST)
-                        inp = self.fields[name][0]
-                except KeyError:
-                    raise Exception(f"Missing input {name} for operator {self.opcode} : \n"+pformat(self,indent=3,compact=True))
-                operator_inputs.append(inp)
-            opername = self.opcode.upper().replace("TOR_", "TORS_")
-            val = Translator().translateOpcode(opername)
-            val = replace_placeholders(val, operator_inputs)
-            return val
+        operator_inputs=[]
+        for name in self.inputNames[self.opcode]:
+            try:
+                if name in self.inputs:
+                    inp = self.decodeInputFieldArray(self.inputs[name], blocksAST)
+                else:
+                    #inp = self.decodeInputFieldArray(self.fields[name], blocksAST)
+                    inp = self.fields[name][0]
+            except KeyError:
+                raise Exception(f"Missing input {name} for operator {self.opcode} : \n"+pformat(self,indent=3,compact=True))
+            #add to list but make sure that we switch back to our own color!!
+            operator_inputs.append(inp+Colorize.color(self.color))
+        opername = self.opcode.upper().replace("TOR_", "TORS_")
+        val = Translator().translateOpcode(opername)
+        val = replace_placeholders(val, operator_inputs)
+        #now colorize some triangles in front and back
+        val = Colorize.color(self.color) + "< "+ val + Colorize.color(self.color) + " >"
+        return val

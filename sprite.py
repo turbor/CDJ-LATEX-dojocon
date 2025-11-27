@@ -8,7 +8,7 @@ import re
 # Function to replace %digit with corresponding value used to resolve the translation string
 def replace_placeholders(text, values):
     try:
-        return re.sub(r'%(\d+)', lambda m: "<" + str(values[int(m.group(1)) - 1]) + ">", text)
+        return re.sub(r'%(\d+)', lambda m: " " + str(values[int(m.group(1)) - 1]) + " ", text)
     except IndexError:
         print("Error: Not enough values for placeholders in translation string")
 
@@ -36,23 +36,27 @@ class Sprite:
                 print()
                 self.outputBlocks(block, "", self.blocksAST, args)
 
-    def decodeBlocksField(self, input: dict, blocksAST: dict):
-        fields = []
-        for name, val in input.items():
-            fields.append(val[0])
-        return fields
+    def decodeBlocksField(self, block: Block, blocksAST: dict):
+        retfields = []
+        for name, val in block.fields.items():
+            if name == "VARIABLE":
+                retfields.append(Colorize.color("amber")+f" {val[0]} "+Colorize.color(block.color))
+            else:
+                retfields.append(val[0])
+        return retfields
 
-    def decodeBlocksInput(self, inputfield: dict, blocksAST: dict):
+    def decodeBlocksInput(self, block: Block, blocksAST: dict):
         stack1 = None
         stack2 = None
         params = []
-        for name, arr in inputfield.items():
+        for name, arr in block.inputs.items():
             if name == 'SUBSTACK':
                 stack1 = arr[1]
             elif name == 'SUBSTACK2':
                 stack2 = arr[1]
             else:
                 val = Block.decodeInputFieldArray(arr,blocksAST)
+                val = val + Colorize.color(block.color)
                 params.append(val)
         return (stack1, stack2, params)
 
@@ -86,19 +90,19 @@ class Sprite:
 
             # decode the fields if any are specified
             if len(block.fields) > 0:
-                fields = self.decodeBlocksField(block.fields, blocksAST)
+                fields = self.decodeBlocksField(block, blocksAST)
 
             if block.opcode.upper() == "MOTION_TURNRIGHT":
                 # pass for debug break purposes
                 pass
             # decode the inputs if any are specified
             if len(block.inputs) > 0:
-                (substack1, substack2, inputs) = self.decodeBlocksInput(block.inputs, blocksAST)
+                (substack1, substack2, inputs) = self.decodeBlocksInput(block, blocksAST)
             #Quick fix flag clicked translation
             if block.opcode.upper() == "EVENT_WHENFLAGCLICKED":
-                inputs.insert(0, Translator().translateOpcode("green flag"))
-
-            #combine the fields and inputs and update the description with the placeholders
+                #inputs.insert(0, Translator().translateOpcode("green flag"))
+                inputs.insert(0,"\U0001f3f3\ufe0f\u200d\U0001f7e9")
+                              #combine the fields and inputs and update the description with the placeholders
             inputs = [*fields, *inputs]
             if len(inputs) > 0:
                 description = replace_placeholders(description, inputs)
