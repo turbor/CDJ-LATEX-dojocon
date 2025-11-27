@@ -385,6 +385,17 @@ class Block:
         ],"color":""}
 
         if isinstance(block, dict):
+            paramdict={ "opcode" : block['opcode'],
+                        "next" : block['next'],
+                        "parent" : block['parent'],
+                        "inputs" : block['inputs'],
+                        "fields" : block['fields'],
+                        "shadow" : block['shadow'],
+                        "topLevel" : block['topLevel'],
+                        "x" : block.get('x'),
+                        "y" : block.get('y')
+                        }
+
             if block['opcode'] in scratch3["motion"]["opcodes"]:
                 # The motion turnleft/turnright blocks are special because they have a different icon
                 # So the have a specialized class, the other are regular MotionBlock instances
@@ -456,7 +467,7 @@ class Block:
                                     topLevel=block['topLevel'],
                                     x=block.get('x'),
                                     y=block.get('y'))
-                blk.color="pink"
+                blk.color=scratch3["operators"]["color"]
                 return blk
             elif block['opcode'] in scratch3["event"]["opcodes"]:
                 match block['opcode'].upper():
@@ -490,7 +501,7 @@ class Block:
                                   topLevel=block['topLevel'],
                                   x=block.get('x'),
                                   y=block.get('y'))
-                blk.color = "yellow"
+                blk.color = scratch3["event"]["opcodes"]
                 return blk
             elif block['opcode'] in scratch3["control"]["opcodes"]:
                 op=block['opcode'].replace("control_","")
@@ -548,9 +559,42 @@ class Block:
                                       y=block.get('y'))
                 else:
                     raise Exception(f"Unknown control block {op}")
-                blk.color = "amber"
+                blk.color = scratch3["control"]["opcodes"]
                 return blk
+            elif block['opcode'] in scratch3["sensing"]["opcodes"]:
+                pass
+            elif block['opcode'] in scratch3["variable"]["opcodes"]:
+                pass
+            elif block['opcode'] in scratch3["list"]["opcodes"]:
+                pass
+            elif block['opcode'] in scratch3["my"]["opcodes"]:
+                pass
+            elif block['opcode'] in scratch3["musicextension"]["opcodes"]:
+                pass
+            elif block['opcode'] in scratch3["penExtension"]["opcodes"]:
+                pass
+            elif block['opcode'] in scratch3["videoExtension"]["opcodes"]:
+                pass
+            elif block['opcode'] in scratch3["faceSensingExtension"]["opcodes"]:
+                pass
+            elif block['opcode'] in scratch3["textToSpeechExtension"]["opcodes"]:
+                pass
+            elif block['opcode'] in scratch3["translateExtension"]["opcodes"]:
+                pass
+            elif block['opcode'] in scratch3["makeyMakeyExtension"]["opcodes"]:
+                pass
+            elif block['opcode'] in scratch3["microbitExtension"]["opcodes"]:
+                pass
+            elif block['opcode'] in scratch3["goDirectForceExtension"]["opcodes"]:
+                pass
+            elif block['opcode'] in scratch3["legoMindstormsEV3Extension"]["opcodes"]:
+                pass
+            elif block['opcode'] in scratch3["legoBoostExtension"]["opcodes"]:
+                pass
+            elif block['opcode'] in scratch3["legoWeDoExtension"]["opcodes"]:
+                pass
             else:
+                raise Exception("unknown opcode to make block from")
                 return Block(opcode=block['opcode'],
                                     next=block['next'],
                                     parent=block['parent'],
