@@ -205,6 +205,26 @@ class Block:
             "control_create_clone_of",
             "control_delete_this_clone"
         ]
+        scratch3_sensingblocks = [
+            "sensing_touchingobject",
+            "sensing_touchingcolor",
+            "sensing_coloristouchingcolor",
+            "sensing_distanceto",
+            "sensing_askandwait",
+            "sensing_answer",
+            "sensing_keypressed",
+            "sensing_mousedown",
+            "sensing_mousex",
+            "sensing_mousey",
+            "sensing_setdragmode",
+            "sensing_loudness",
+            "sensing_timer",
+            "sensing_resettimer",
+            "sensing_of",
+            "sensing_current",
+            "sensing_dayssince2000",
+            "sensing_username"
+        ]
         scratch3_operators = [
             "operator_add",
             "operator_subtract",
@@ -225,6 +245,144 @@ class Block:
             "operator_round",
             "operator_mathop",
             ]
+        scratch3_variableblocks = [
+            "data_variable",
+            "data_setvariableto",
+            "data_changevariableby",
+            "data_showvariable",
+            "data_hidevariable"
+        ]
+        scratch3_listblocks = [
+            "data_deletealloflist",
+            "data_insertatlist",
+            "data_replaceitemoflist",
+            "data_itemoflist",
+            "data_itemnumoflist",
+            "data_lengthoflist",
+            "data_listcontainsitem",
+            "data_showlist",
+            "data_hidelist"
+        ]
+        scratch3_myblocks = [
+            "procedures_definition",
+            "procedures_call",
+            "argument_reporter_string_number",
+            "argument_reporter_boolean"
+        ]
+        scratch3_musicextensionblocks = [
+            "music_playDrumForBeats",
+            "music_restForBeats",
+            "music_playNoteForBeats",
+            "music_setInstrument",
+            "music_setTempo",
+            "music_changeTempo",
+            "music_getTempo"
+        ]
+        scratch3_penExtensionBlocks = [
+            "pen_clear",
+            "pen_stamp",
+            "pen_penDown",
+            "pen_penUp",
+            "pen_setPenColorToColor",
+            "pen_changePenColorParamBy",
+            "pen_setPenColorParamTo",
+            "pen_changePenSizeBy",
+            "pen_setPenSizeTo"
+        ]
+        scratch3_videoExtensionBlocks = [
+            "videoSensing_whenMotionGreaterThan",
+            "videoSensing_videoOn",
+            "videoSensing_videoToggle",
+            "videoSensing_setVideoTransparency"
+        ]
+        scratch3_faceSensingExtensionblocks = [
+            "faceSensing_goToPart",
+            "faceSensing_pointInFaceTiltDirection",
+            "faceSensing_setSizeToFaceSize",
+            "faceSensing_whenTilted",
+            "faceSensing_whenSpriteTouchesPart",
+            "faceSensing_whenFaceDetected",
+            "faceSensing_faceIsDetected",
+            "faceSensing_faceTilt",
+            "faceSensing_faceSize"
+        ]
+        scratch3_textToSpeechExtensionBlocks = [
+            "text2speech_speakAndWait",
+            "text2speech_setVoice",
+            "text2speech_setLanguage"
+        ]
+        scratch3_translateExtensionBlocks = [
+            "translate_getTranslate",
+            "translate_getViewerLanguage"
+        ]
+        scratch3_makeyMakeyExtensionBlocks = [
+            "makeymakey_whenMakeyKeyPressed",
+            "makeymakey_whenCodePressed"
+        ]
+        scratch3_microbitExtensionBlocks = [
+            "microbit_whenButtonPressed",
+            "microbit_isButtonPressed",
+            "microbit_whenGesture",
+            "microbit_displaySymbol",
+            "microbit_displayText",
+            "microbit_displayClear",
+            "microbit_whenTilted",
+            "microbit_isTilted",
+            "microbit_getTiltAngle",
+            "microbit_whenPinConnected"
+        ]
+        scratch3_goDirectForceExtensionBlocks = [
+            "gdxfor_whenGesture",
+            "gdxfor_whenForcePushedOrPulled",
+            "gdxfor_getForce",
+            "gdxfor_whenTilted",
+            "gdxfor_isTilted",
+            "gdxfor_getTilt",
+            "gdxfor_isFreeFalling",
+            "gdxfor_getSpinSpeed",
+            "gdxfor_getAcceleration"
+        ]
+        scratch3_legoMindstormsEV3ExtensionBlocks = [
+            "ev3_motorTurnClockwise",
+            "ev3_motorTurnCounterClockwise",
+            "ev3_motorSetPower",
+            "ev3_getMotorPosition",
+            "ev3_whenButtonPressed",
+            "ev3_whenDistanceLessThan",
+            "ev3_whenBrightnessLessThan",
+            "ev3_buttonPressed",
+            "ev3_getDistance",
+            "ev3_getBrightness",
+            "ev3_beep"
+        ]
+        scratch3_legoBoostExtensionBlocks = [
+            "boost_motorOnFor",
+            "boost_motorOnForRotation",
+            "boost_motorOn",
+            "boost_motorOff",
+            "boost_setMotorPower",
+            "boost_setMotorDirection",
+            "boost_getMotorPosition",
+            "boost_whenColor",
+            "boost_seeingColor",
+            "boost_whenTilted",
+            "boost_getTiltAngle",
+            "boost_setLightHue"
+        ]
+        scratch3_legoWeDoExtensionBlocks = [
+            "wedo2_motorOnFor",
+            "wedo2_motorOn",
+            "wedo2_motorOff",
+            "wedo2_startMotorPower",
+            "wedo2_setMotorDirection",
+            "wedo2_setLightHue",
+            "wedo2_whenDistance",
+            "wedo2_whenTilted",
+            "wedo2_getDistance",
+            "wedo2_isTilted",
+            "wedo2_getTiltAngle"
+        ]
+
         if isinstance(block, dict):
             if block['opcode'] in scratch3_motionblocks:
                 # The motion turnleft/turnright blocks are special because they have a different icon
