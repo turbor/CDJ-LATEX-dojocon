@@ -127,7 +127,8 @@ class Block:
 
     @staticmethod
     def factory(block: dict):
-        scratch3_motionblocks = [
+        scratch3={}
+        scratch3["motion"] ={"opcodes": [
             "motion_movesteps",
             "motion_turnright",
             "motion_turnleft",
@@ -146,8 +147,8 @@ class Block:
             "motion_xposition",
             "motion_yposition",
             "motion_direction"
-        ]
-        scratch3_looksblocks = [
+        ],"color":"blue"}
+        scratch3["looks"] ={"opcodes": [
             "looks_sayforsecs",
             "looks_say",
             "looks_thinkforsecs",
@@ -169,8 +170,8 @@ class Block:
             "looks_costumenumbername",
             "looks_backdropnumbername",
             "looks_size"
-        ]
-        scratch3_soundblocks = [
+        ],"color":"purple"}
+        scratch3["sound"] ={"opcodes":  [
             "sound_playuntildone",
             "sound_play",
             "sound_stopallsounds",
@@ -180,8 +181,8 @@ class Block:
             "sound_changevolumeby",
             "sound_setvolumeto",
             "sound_volume"
-        ]
-        scratch3_eventblocks = [
+        ],"color":""}
+        scratch3["event"] ={"opcodes":  [
             "event_whenflagclicked",
             "event_whenkeypressed",
             "event_whenthisspriteclicked",
@@ -191,8 +192,8 @@ class Block:
             "event_whenbroadcastreceived",
             "event_broadcast",
             "event_broadcastandwait"
-        ]
-        scratch3_controlblocks = [
+        ],"color":""}
+        scratch3["control"] ={"opcodes":  [
             "control_wait",
             "control_repeat",
             "control_forever",
@@ -204,8 +205,8 @@ class Block:
             "control_start_as_clone",
             "control_create_clone_of",
             "control_delete_this_clone"
-        ]
-        scratch3_sensingblocks = [
+        ],"color":""}
+        scratch3["sensing"] ={"opcodes":  [
             "sensing_touchingobject",
             "sensing_touchingcolor",
             "sensing_coloristouchingcolor",
@@ -224,8 +225,8 @@ class Block:
             "sensing_current",
             "sensing_dayssince2000",
             "sensing_username"
-        ]
-        scratch3_operators = [
+        ],"color":""}
+        scratch3["operators"] ={"opcodes":  [
             "operator_add",
             "operator_subtract",
             "operator_multiply",
@@ -244,15 +245,15 @@ class Block:
             "operator_mod",
             "operator_round",
             "operator_mathop",
-            ]
-        scratch3_variableblocks = [
+            ],"color":""}
+        scratch3["variable"] ={"opcodes":  [
             "data_variable",
             "data_setvariableto",
             "data_changevariableby",
             "data_showvariable",
             "data_hidevariable"
-        ]
-        scratch3_listblocks = [
+        ],"color":""}
+        scratch3["list"] ={"opcodes":  [
             "data_deletealloflist",
             "data_insertatlist",
             "data_replaceitemoflist",
@@ -262,14 +263,14 @@ class Block:
             "data_listcontainsitem",
             "data_showlist",
             "data_hidelist"
-        ]
-        scratch3_myblocks = [
+        ],"color":""}
+        scratch3["my"] ={"opcodes":  [
             "procedures_definition",
             "procedures_call",
             "argument_reporter_string_number",
             "argument_reporter_boolean"
-        ]
-        scratch3_musicextensionblocks = [
+        ],"color":""}
+        scratch3["musicextension"] ={"opcodes":  [
             "music_playDrumForBeats",
             "music_restForBeats",
             "music_playNoteForBeats",
@@ -277,8 +278,8 @@ class Block:
             "music_setTempo",
             "music_changeTempo",
             "music_getTempo"
-        ]
-        scratch3_penExtensionBlocks = [
+        ],"color":""}
+        scratch3["penExtension"] ={"opcodes":  [
             "pen_clear",
             "pen_stamp",
             "pen_penDown",
@@ -288,14 +289,14 @@ class Block:
             "pen_setPenColorParamTo",
             "pen_changePenSizeBy",
             "pen_setPenSizeTo"
-        ]
-        scratch3_videoExtensionBlocks = [
+        ],"color":""}
+        scratch3["videoExtension"] ={"opcodes":  [
             "videoSensing_whenMotionGreaterThan",
             "videoSensing_videoOn",
             "videoSensing_videoToggle",
             "videoSensing_setVideoTransparency"
-        ]
-        scratch3_faceSensingExtensionblocks = [
+        ],"color":""}
+        scratch3["faceSensingExtension"] ={"opcodes":  [
             "faceSensing_goToPart",
             "faceSensing_pointInFaceTiltDirection",
             "faceSensing_setSizeToFaceSize",
@@ -305,21 +306,21 @@ class Block:
             "faceSensing_faceIsDetected",
             "faceSensing_faceTilt",
             "faceSensing_faceSize"
-        ]
-        scratch3_textToSpeechExtensionBlocks = [
+        ],"color":""}
+        scratch3["textToSpeechExtension"] ={"opcodes":  [
             "text2speech_speakAndWait",
             "text2speech_setVoice",
             "text2speech_setLanguage"
-        ]
-        scratch3_translateExtensionBlocks = [
+        ],"color":""}
+        scratch3["translateExtension"] ={"opcodes":  [
             "translate_getTranslate",
             "translate_getViewerLanguage"
-        ]
-        scratch3_makeyMakeyExtensionBlocks = [
+        ],"color":""}
+        scratch3["makeyMakeyExtension"] ={"opcodes":  [
             "makeymakey_whenMakeyKeyPressed",
             "makeymakey_whenCodePressed"
-        ]
-        scratch3_microbitExtensionBlocks = [
+        ],"color":""}
+        scratch3["microbitExtension"] ={"opcodes":  [
             "microbit_whenButtonPressed",
             "microbit_isButtonPressed",
             "microbit_whenGesture",
@@ -330,8 +331,8 @@ class Block:
             "microbit_isTilted",
             "microbit_getTiltAngle",
             "microbit_whenPinConnected"
-        ]
-        scratch3_goDirectForceExtensionBlocks = [
+        ],"color":""}
+        scratch3["goDirectForceExtension"] ={"opcodes":  [
             "gdxfor_whenGesture",
             "gdxfor_whenForcePushedOrPulled",
             "gdxfor_getForce",
@@ -341,8 +342,8 @@ class Block:
             "gdxfor_isFreeFalling",
             "gdxfor_getSpinSpeed",
             "gdxfor_getAcceleration"
-        ]
-        scratch3_legoMindstormsEV3ExtensionBlocks = [
+        ],"color":""}
+        scratch3["legoMindstormsEV3Extension"] ={"opcodes":  [
             "ev3_motorTurnClockwise",
             "ev3_motorTurnCounterClockwise",
             "ev3_motorSetPower",
@@ -354,8 +355,8 @@ class Block:
             "ev3_getDistance",
             "ev3_getBrightness",
             "ev3_beep"
-        ]
-        scratch3_legoBoostExtensionBlocks = [
+        ],"color":""}
+        scratch3["legoBoostExtension"] ={"opcodes": [
             "boost_motorOnFor",
             "boost_motorOnForRotation",
             "boost_motorOn",
@@ -368,8 +369,8 @@ class Block:
             "boost_whenTilted",
             "boost_getTiltAngle",
             "boost_setLightHue"
-        ]
-        scratch3_legoWeDoExtensionBlocks = [
+        ],"color":""}
+        scratch3["legoWeDoExtension"] ={"opcodes": [
             "wedo2_motorOnFor",
             "wedo2_motorOn",
             "wedo2_motorOff",
@@ -381,15 +382,16 @@ class Block:
             "wedo2_getDistance",
             "wedo2_isTilted",
             "wedo2_getTiltAngle"
-        ]
+        ],"color":""}
 
         if isinstance(block, dict):
-            if block['opcode'] in scratch3_motionblocks:
+            if block['opcode'] in scratch3["motion"]["opcodes"]:
                 # The motion turnleft/turnright blocks are special because they have a different icon
                 # So the have a specialized class, the other are regular MotionBlock instances
+                blk = None
                 match block['opcode'].upper():
                     case "MOTION_TURNLEFT":
-                        return TurnLeftRightBlock(opcode=block['opcode'],
+                        blk = TurnLeftRightBlock(opcode=block['opcode'],
                                                   next=block['next'],
                                                   parent=block['parent'],
                                                   inputs=block['inputs'],
@@ -400,7 +402,7 @@ class Block:
                                                   y=block.get('y'),
                                                   left=True)
                     case "MOTION_TURNRIGHT":
-                        return TurnLeftRightBlock(opcode=block['opcode'],
+                        blk = TurnLeftRightBlock(opcode=block['opcode'],
                                                   next=block['next'],
                                                   parent=block['parent'],
                                                   inputs=block['inputs'],
@@ -411,7 +413,7 @@ class Block:
                                                   y=block.get('y'),
                                                   left=False)
                     case _:
-                        return MotionBlock(opcode=block['opcode'],
+                        blk = MotionBlock(opcode=block['opcode'],
                                 next=block['next'],
                                 parent=block['parent'],
                                 inputs=block['inputs'],
@@ -420,8 +422,10 @@ class Block:
                                 topLevel=block['topLevel'],
                                 x=block.get('x'),
                                 y=block.get('y'))
-            elif block['opcode'] in scratch3_looksblocks:
-                return LooksBlock(opcode=block['opcode'],
+                blk.color = scratch3["motion"]["color"]
+                return blk
+            elif block['opcode'] in scratch3["looks"]["opcodes"]:
+                blk = SimpleBlock(opcode=block['opcode'],
                                      next=block['next'],
                                      parent=block['parent'],
                                      inputs=block['inputs'],
@@ -430,7 +434,9 @@ class Block:
                                      topLevel=block['topLevel'],
                                      x=block.get('x'),
                                      y=block.get('y'))
-            elif block['opcode'] in scratch3_operators:
+                blk.color = scratch3["looks"]["color"]
+                return blk
+            elif block['opcode'] in scratch3["operators"]["opcodes"]:
                 return OperatorBlock(opcode=block['opcode'],
                                      next=block['next'],
                                      parent=block['parent'],
@@ -440,7 +446,7 @@ class Block:
                                      topLevel=block['topLevel'],
                                      x=block.get('x'),
                                      y=block.get('y'))
-            elif block['opcode'] in scratch3_soundblocks:
+            elif block['opcode'] in scratch3["sound"]["opcodes"]:
                 blk = SimpleBlock(opcode=block['opcode'],
                                      next=block['next'],
                                      parent=block['parent'],
@@ -452,7 +458,7 @@ class Block:
                                     y=block.get('y'))
                 blk.color="pink"
                 return blk
-            elif block['opcode'] in scratch3_eventblocks:
+            elif block['opcode'] in scratch3["event"]["opcodes"]:
                 match block['opcode'].upper():
                     case "event_broadcast":
                         blk=SimpleBlock(opcode=block['opcode'],
@@ -486,7 +492,7 @@ class Block:
                                   y=block.get('y'))
                 blk.color = "yellow"
                 return blk
-            elif block['opcode'] in scratch3_controlblocks:
+            elif block['opcode'] in scratch3["control"]["opcodes"]:
                 op=block['opcode'].replace("control_","")
                 blk=None
                 if op in ['repeat','forever','if','repeat_until'] :
@@ -595,8 +601,6 @@ class EventBlock(HatBlock):
 class MotionBlock(SimpleBlock):
     color = "blue"
 
-class LooksBlock(SimpleBlock):
-    color = "purple"
 
 class OperatorBlock(SimpleBlock):
     color = "green"
