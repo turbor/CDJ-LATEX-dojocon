@@ -9,6 +9,7 @@ from textwrap import indent
 import re
 from pprint import pprint
 from block import  Block
+from colorize import Colorize
 from sprite import Sprite
 from monitor import Monitor
 from translator import Translator
@@ -156,6 +157,7 @@ def main(args):
 
 if __name__ == '__main__':
     check_python_version()
+    Colorize.contrastletters()
     args = parse_cli_arguments()
     Translator().read_translation_files(args)
     main(args)
