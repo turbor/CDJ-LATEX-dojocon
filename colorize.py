@@ -6,20 +6,22 @@ class Colorize:
     @staticmethod
     def color(text):
         colorvals={
-            "amber":"\033[38;5;15;48;5;214m",
-            "blue":"\033[38;5;15;48;5;26m",
-            "lightblue": "\033[38;5;15;48;5;45m",
-            "lightgreen": "\033[38;5;15;48;5;118m",
-            "green": "\033[38;5;15;48;5;34m",
-            "purple": "\033[38;5;15;48;5;207m",
-            "pink": "\033[38;5;15;48;5;128m",
-            "lightyellow":"\033[38;5;0;48;5;227m",
-            "yellow":"\033[38;5;0;48;5;220m",
+            "blueberry":"\033[38;5;15;48;5;75m",
+            "lightviolet": "\033[38;5;15;48;5;141m",
+            "magenta": "\033[38;5;15;48;5;176m",
+            "amber":"\033[38;5;15;48;5;220m",
+            "brightyellow": "\033[38;5;15;48;5;214m",
+            "moderateblue": "\033[38;5;15;48;5;110m",
+            "coolgreen": "\033[38;5;15;48;5;114m",
+            "mango":"\033[38;5;0;48;5;215m",
+            "orange":"\033[38;5;0;48;5;202m",
+            "hotpink":"\033[38;5;0;48;5;211m",
+            "limegreen":"\033[38;5;0;48;5;43m",
             "white": "\033[38;5;0;48;5;15m"
         }
         if not text=="" and not text in colorvals:
             print("Colorize unknown color:",text)
 
 
-        colorval=colorvals.get(text,"\033[38;5;0;48;5;213m")
+        colorval=colorvals.get(text,"\033[38;5;160;48;5;180m")
         return colorval # + text + '\033[0m'

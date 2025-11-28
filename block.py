@@ -147,7 +147,7 @@ class Block:
             "motion_xposition",
             "motion_yposition",
             "motion_direction"
-        ],"color":"blue"}
+        ],"color":"blueberry","rgb":"4c97ff"}
         scratch3["looks"] ={"opcodes": [
             "looks_sayforsecs",
             "looks_say",
@@ -170,7 +170,7 @@ class Block:
             "looks_costumenumbername",
             "looks_backdropnumbername",
             "looks_size"
-        ],"color":"purple"}
+        ],"color":"lightviolet","rgb":"#9966ff"}
         scratch3["sound"] ={"opcodes":  [
             "sound_playuntildone",
             "sound_play",
@@ -181,7 +181,7 @@ class Block:
             "sound_changevolumeby",
             "sound_setvolumeto",
             "sound_volume"
-        ],"color":""}
+        ],"color":"magenta","rgb":"#cf5acf"}
         scratch3["event"] ={"opcodes":  [
             "event_whenflagclicked",
             "event_whenkeypressed",
@@ -192,7 +192,7 @@ class Block:
             "event_whenbroadcastreceived",
             "event_broadcast",
             "event_broadcastandwait"
-        ],"color":""}
+        ],"color":"amber","rgb":"#ffbf00"}
         scratch3["control"] ={"opcodes":  [
             "control_wait",
             "control_repeat",
@@ -205,7 +205,7 @@ class Block:
             "control_start_as_clone",
             "control_create_clone_of",
             "control_delete_this_clone"
-        ],"color":""}
+        ],"color":"brightyellow","rgb":"#ffab19"}
         scratch3["sensing"] ={"opcodes":  [
             "sensing_touchingobject",
             "sensing_touchingcolor",
@@ -225,7 +225,7 @@ class Block:
             "sensing_current",
             "sensing_dayssince2000",
             "sensing_username"
-        ],"color":""}
+        ],"color":"moderateblue","rgb":"#5cb1d6"}
         scratch3["operators"] ={"opcodes":  [
             "operator_add",
             "operator_subtract",
@@ -245,14 +245,14 @@ class Block:
             "operator_mod",
             "operator_round",
             "operator_mathop",
-            ],"color":""}
+            ],"color":"coolgreen","rgb":"#52b55a"}
         scratch3["variable"] ={"opcodes":  [
             "data_variable",
             "data_setvariableto",
             "data_changevariableby",
             "data_showvariable",
             "data_hidevariable"
-        ],"color":""}
+        ],"color":"mango","rgb":"#ff8c1a"}
         scratch3["list"] ={"opcodes":  [
             "data_deletealloflist",
             "data_insertatlist",
@@ -263,13 +263,13 @@ class Block:
             "data_listcontainsitem",
             "data_showlist",
             "data_hidelist"
-        ],"color":""}
+        ],"color":"orange","rgb":"#ff4c00"}
         scratch3["my"] ={"opcodes":  [
             "procedures_definition",
             "procedures_call",
             "argument_reporter_string_number",
             "argument_reporter_boolean"
-        ],"color":""}
+        ],"color":"hotpink","rgb":"#ff4d88"}
         scratch3["musicextension"] ={"opcodes":  [
             "music_playDrumForBeats",
             "music_restForBeats",
@@ -278,7 +278,7 @@ class Block:
             "music_setTempo",
             "music_changeTempo",
             "music_getTempo"
-        ],"color":""}
+        ],"color":"limegreen","rgb":"#0fbd8c"}
         scratch3["penExtension"] ={"opcodes":  [
             "pen_clear",
             "pen_stamp",
@@ -289,13 +289,13 @@ class Block:
             "pen_setPenColorParamTo",
             "pen_changePenSizeBy",
             "pen_setPenSizeTo"
-        ],"color":""}
+        ],"color":"limegreen","rgb":"#0fbd8c"}
         scratch3["videoExtension"] ={"opcodes":  [
             "videoSensing_whenMotionGreaterThan",
             "videoSensing_videoOn",
             "videoSensing_videoToggle",
             "videoSensing_setVideoTransparency"
-        ],"color":""}
+        ],"color":"limegreen","rgb":"#0fbd8c"}
         scratch3["faceSensingExtension"] ={"opcodes":  [
             "faceSensing_goToPart",
             "faceSensing_pointInFaceTiltDirection",
@@ -306,20 +306,20 @@ class Block:
             "faceSensing_faceIsDetected",
             "faceSensing_faceTilt",
             "faceSensing_faceSize"
-        ],"color":""}
+        ],"color":"limegreen","rgb":"#0fbd8c"}
         scratch3["textToSpeechExtension"] ={"opcodes":  [
             "text2speech_speakAndWait",
             "text2speech_setVoice",
             "text2speech_setLanguage"
-        ],"color":""}
+        ],"color":"limegreen","rgb":"#0fbd8c"}
         scratch3["translateExtension"] ={"opcodes":  [
             "translate_getTranslate",
             "translate_getViewerLanguage"
-        ],"color":""}
+        ],"color":"limegreen","rgb":"#0fbd8c"}
         scratch3["makeyMakeyExtension"] ={"opcodes":  [
             "makeymakey_whenMakeyKeyPressed",
             "makeymakey_whenCodePressed"
-        ],"color":""}
+        ],"color":"limegreen","rgb":"#0fbd8c"}
         scratch3["microbitExtension"] ={"opcodes":  [
             "microbit_whenButtonPressed",
             "microbit_isButtonPressed",
@@ -331,7 +331,7 @@ class Block:
             "microbit_isTilted",
             "microbit_getTiltAngle",
             "microbit_whenPinConnected"
-        ],"color":""}
+        ],"color":"limegreen","rgb":"#0fbd8c"}
         scratch3["goDirectForceExtension"] ={"opcodes":  [
             "gdxfor_whenGesture",
             "gdxfor_whenForcePushedOrPulled",
@@ -342,7 +342,7 @@ class Block:
             "gdxfor_isFreeFalling",
             "gdxfor_getSpinSpeed",
             "gdxfor_getAcceleration"
-        ],"color":""}
+        ],"color":"limegreen","rgb":"#0fbd8c"}
         scratch3["legoMindstormsEV3Extension"] ={"opcodes":  [
             "ev3_motorTurnClockwise",
             "ev3_motorTurnCounterClockwise",
@@ -355,7 +355,7 @@ class Block:
             "ev3_getDistance",
             "ev3_getBrightness",
             "ev3_beep"
-        ],"color":""}
+        ],"color":"limegreen","rgb":"#0fbd8c"}
         scratch3["legoBoostExtension"] ={"opcodes": [
             "boost_motorOnFor",
             "boost_motorOnForRotation",
@@ -369,7 +369,7 @@ class Block:
             "boost_whenTilted",
             "boost_getTiltAngle",
             "boost_setLightHue"
-        ],"color":""}
+        ],"color":"limegreen","rgb":"#0fbd8c"}
         scratch3["legoWeDoExtension"] ={"opcodes": [
             "wedo2_motorOnFor",
             "wedo2_motorOn",
@@ -382,7 +382,7 @@ class Block:
             "wedo2_getDistance",
             "wedo2_isTilted",
             "wedo2_getTiltAngle"
-        ],"color":""}
+        ],"color":"limegreen","rgb":"#0fbd8c"}
 
         if isinstance(block, dict):
             paramdict={ "opcode" : block['opcode'],
@@ -402,199 +402,71 @@ class Block:
                 blk = None
                 match block['opcode'].upper():
                     case "MOTION_TURNLEFT":
-                        blk = TurnLeftRightBlock(opcode=block['opcode'],
-                                                  next=block['next'],
-                                                  parent=block['parent'],
-                                                  inputs=block['inputs'],
-                                                  fields=block['fields'],
-                                                  shadow=block['shadow'],
-                                                  topLevel=block['topLevel'],
-                                                  x=block.get('x'),
-                                                  y=block.get('y'),
-                                                  left=True)
+                        blk = TurnLeftRightBlock(**paramdict, left=True)
                     case "MOTION_TURNRIGHT":
-                        blk = TurnLeftRightBlock(opcode=block['opcode'],
-                                                  next=block['next'],
-                                                  parent=block['parent'],
-                                                  inputs=block['inputs'],
-                                                  fields=block['fields'],
-                                                  shadow=block['shadow'],
-                                                  topLevel=block['topLevel'],
-                                                  x=block.get('x'),
-                                                  y=block.get('y'),
-                                                  left=False)
+                        blk = TurnLeftRightBlock(**paramdict, left=False)
                     case _:
-                        blk = MotionBlock(opcode=block['opcode'],
-                                next=block['next'],
-                                parent=block['parent'],
-                                inputs=block['inputs'],
-                                fields=block['fields'],
-                                shadow=block['shadow'],
-                                topLevel=block['topLevel'],
-                                x=block.get('x'),
-                                y=block.get('y'))
+                        blk = MotionBlock(**paramdict)
                 blk.color = scratch3["motion"]["color"]
                 return blk
             elif block['opcode'] in scratch3["looks"]["opcodes"]:
-                blk = SimpleBlock(opcode=block['opcode'],
-                                     next=block['next'],
-                                     parent=block['parent'],
-                                     inputs=block['inputs'],
-                                     fields=block['fields'],
-                                     shadow=block['shadow'],
-                                     topLevel=block['topLevel'],
-                                     x=block.get('x'),
-                                     y=block.get('y'))
+                blk = SimpleBlock(**paramdict)
                 blk.color = scratch3["looks"]["color"]
                 return blk
             elif block['opcode'] in scratch3["operators"]["opcodes"]:
-                return OperatorBlock(opcode=block['opcode'],
-                                     next=block['next'],
-                                     parent=block['parent'],
-                                     inputs=block['inputs'],
-                                     fields=block['fields'],
-                                     shadow=block['shadow'],
-                                     topLevel=block['topLevel'],
-                                     x=block.get('x'),
-                                     y=block.get('y'))
-            elif block['opcode'] in scratch3["sound"]["opcodes"]:
-                blk = SimpleBlock(opcode=block['opcode'],
-                                     next=block['next'],
-                                     parent=block['parent'],
-                                     inputs=block['inputs'],
-                                     fields=block['fields'],
-                                    shadow=block['shadow'],
-                                    topLevel=block['topLevel'],
-                                    x=block.get('x'),
-                                    y=block.get('y'))
+                blk = OperatorBlock(**paramdict)
                 blk.color=scratch3["operators"]["color"]
+                return blk
+            elif block['opcode'] in scratch3["sound"]["opcodes"]:
+                blk = SimpleBlock(**paramdict)
+                blk.color=scratch3["sound"]["color"]
                 return blk
             elif block['opcode'] in scratch3["event"]["opcodes"]:
                 match block['opcode'].upper():
                     case "event_broadcast":
-                        blk=SimpleBlock(opcode=block['opcode'],
-                                  next=block['next'],
-                                  parent=block['parent'],
-                                  inputs=block['inputs'],
-                                  fields=block['fields'],
-                                  shadow=block['shadow'],
-                                  topLevel=block['topLevel'],
-                                  x=block.get('x'),
-                                  y=block.get('y'))
+                        blk=SimpleBlock(**paramdict)
                     case "event_broadcastandwait":
-                        blk = SimpleBlock(opcode=block['opcode'],
-                                  next=block['next'],
-                                  parent=block['parent'],
-                                  inputs=block['inputs'],
-                                  fields=block['fields'],
-                                  shadow=block['shadow'],
-                                  topLevel=block['topLevel'],
-                                  x=block.get('x'),
-                                  y=block.get('y'))
+                        blk = SimpleBlock(**paramdict)
                     case _:
-                        blk = HatBlock(opcode=block['opcode'],
-                                  next=block['next'],
-                                  parent=block['parent'],
-                                  inputs=block['inputs'],
-                                  fields=block['fields'],
-                                  shadow=block['shadow'],
-                                  topLevel=block['topLevel'],
-                                  x=block.get('x'),
-                                  y=block.get('y'))
-                blk.color = scratch3["event"]["opcodes"]
+                        blk = HatBlock(**paramdict)
+                blk.color = scratch3["event"]["color"]
                 return blk
             elif block['opcode'] in scratch3["control"]["opcodes"]:
                 op=block['opcode'].replace("control_","")
                 blk=None
                 if op in ['repeat','forever','if','repeat_until'] :
-                    blk = SingleMouthBlock(opcode=block['opcode'],
-                                        next=block['next'],
-                                        parent=block['parent'],
-                                        inputs=block['inputs'],
-                                        fields=block['fields'],
-                                        shadow=block['shadow'],
-                                        topLevel=block['topLevel'],
-                                        x=block.get('x'),
-                                        y=block.get('y'))
+                    blk = SingleMouthBlock(**paramdict)
                 elif op == 'if_else':
-                    blk = DoubleMouthBlock(opcode=block['opcode'],
-                                        next=block['next'],
-                                        parent=block['parent'],
-                                        inputs=block['inputs'],
-                                        fields=block['fields'],
-                                        shadow=block['shadow'],
-                                        topLevel=block['topLevel'],
-                                        x=block.get('x'),
-                                        y=block.get('y'))
+                    blk = DoubleMouthBlock(**paramdict)
                 elif op in ['wait','wait_until','create_clone_of']:
-                    blk = SimpleBlock(opcode=block['opcode'],
-                                           next=block['next'],
-                                           parent=block['parent'],
-                                           inputs=block['inputs'],
-                                           fields=block['fields'],
-                                           shadow=block['shadow'],
-                                           topLevel=block['topLevel'],
-                                           x=block.get('x'),
-                                           y=block.get('y'))
+                    blk = SimpleBlock(**paramdict)
                 elif op == 'start_as_clone':
-                    blk = HatBlock(opcode=block['opcode'],
-                                            next=block['next'],
-                                            parent=block['parent'],
-                                            inputs=block['inputs'],
-                                            fields=block['fields'],
-                                            shadow=block['shadow'],
-                                            topLevel=block['topLevel'],
-                                            x=block.get('x'),
-                                            y=block.get('y'))
+                    blk = HatBlock(**paramdict)
                 elif op in ['delete_this_clone','stop']:
                     #no end blocks for now so use simpleblock
-                    blk = SimpleBlock(opcode=block['opcode'],
-                                      next=block['next'],
-                                      parent=block['parent'],
-                                      inputs=block['inputs'],
-                                      fields=block['fields'],
-                                      shadow=block['shadow'],
-                                      topLevel=block['topLevel'],
-                                      x=block.get('x'),
-                                      y=block.get('y'))
+                    blk = SimpleBlock(**paramdict)
                 else:
                     raise Exception(f"Unknown control block {op}")
-                blk.color = scratch3["control"]["opcodes"]
+                blk.color = scratch3["control"]["color"]
                 return blk
-            elif block['opcode'] in scratch3["sensing"]["opcodes"]:
-                pass
-            elif block['opcode'] in scratch3["variable"]["opcodes"]:
-                pass
-            elif block['opcode'] in scratch3["list"]["opcodes"]:
-                pass
-            elif block['opcode'] in scratch3["my"]["opcodes"]:
-                pass
-            elif block['opcode'] in scratch3["musicextension"]["opcodes"]:
-                pass
-            elif block['opcode'] in scratch3["penExtension"]["opcodes"]:
-                pass
-            elif block['opcode'] in scratch3["videoExtension"]["opcodes"]:
-                pass
-            elif block['opcode'] in scratch3["faceSensingExtension"]["opcodes"]:
-                pass
-            elif block['opcode'] in scratch3["textToSpeechExtension"]["opcodes"]:
-                pass
-            elif block['opcode'] in scratch3["translateExtension"]["opcodes"]:
-                pass
-            elif block['opcode'] in scratch3["makeyMakeyExtension"]["opcodes"]:
-                pass
-            elif block['opcode'] in scratch3["microbitExtension"]["opcodes"]:
-                pass
-            elif block['opcode'] in scratch3["goDirectForceExtension"]["opcodes"]:
-                pass
-            elif block['opcode'] in scratch3["legoMindstormsEV3Extension"]["opcodes"]:
-                pass
-            elif block['opcode'] in scratch3["legoBoostExtension"]["opcodes"]:
-                pass
-            elif block['opcode'] in scratch3["legoWeDoExtension"]["opcodes"]:
-                pass
             else:
-                raise Exception("unknown opcode to make block from")
+                for group in ["sensing","variable",
+                                "list", "my", "musicextension", "penExtension",
+                                "videoExtension", "faceSensingExtension",
+                                "textToSpeechExtension", "translateExtension",
+                                "makeyMakeyExtension", "microbitExtension",
+                                "goDirectForceExtension", "legoMindstormsEV3Extension",
+                                "legoBoostExtension", "legoWeDoExtension"]:
+                    if block['opcode'] in scratch3[group]["opcodes"]:
+                        blk = SimpleBlock(**paramdict)
+                        blk.color = scratch3[group]["color"]
+                        return blk
+                    if block['opcode'].endswith("menu"):
+                        blk = SimpleBlock(**paramdict)
+                        blk.color = scratch3[group]["color"]
+                        return blk
+
+                #raise Exception(f"unknown opcode to make block from {block['opcode']}")
                 return Block(opcode=block['opcode'],
                                     next=block['next'],
                                     parent=block['parent'],
@@ -609,16 +481,16 @@ class Block:
         raise Exception("Unknown block type")
 
 class SimpleBlock(Block):
-    color = "lightblue"
+    pass
 
 class SingleMouthBlock(Block):
-    color = "lightgreen"
+    pass
 
 class DoubleMouthBlock(Block):
-    color = "lightgreen"
+    pass
 
 class HatBlock(Block):
-    color = "lightblue"
+    pass
 
 class TurnLeftRightBlock(SimpleBlock):
     arrow:str
@@ -640,14 +512,13 @@ class TurnLeftRightBlock(SimpleBlock):
         return desc
 
 class EventBlock(HatBlock):
-    color = "lightyellow"
+    pass
 
 class MotionBlock(SimpleBlock):
-    color = "blue"
+    pass
 
 
 class OperatorBlock(SimpleBlock):
-    color = "green"
     inputNames = {
         "operator_add": ["NUM1","NUM2"],
         "operator_subtract": ["NUM1","NUM2"],
