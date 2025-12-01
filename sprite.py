@@ -41,9 +41,11 @@ class Sprite:
         for name, val in block.fields.items():
             if name == "VARIABLE":
                 retfields.append(Colorize.color("amber")+f" {val[0]} "+Colorize.color(block.color))
+            elif name == "LIST":
+                retfields.append(Colorize.color("orange")+f"| {val[0]} v|"+Colorize.color(block.color))
             else:
-                retfields.append(val[0])
-        return retfields
+                retfields.append("==unknown fieldtype=="+val[0])
+        return ''.join(retfields)
 
     def decodeBlocksInput(self, block: Block, blocksAST: dict):
         stack1 = None

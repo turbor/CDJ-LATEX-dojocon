@@ -69,7 +69,18 @@ class Block:
         return val
 
     def decodeShadowBlock(self, blocksAST: dict):
-        return "No specific decode for " + Translator().translateOpcode(self.opcode.upper())
+        if self.opcode.upper().endswith("_MENU"):
+            retfields = []
+            for name, val in self.fields.items():
+                if name == "VARIABLE":
+                    retfields.append(Colorize.color("amber") + f" {val[0]} " + Colorize.color(block.color))
+                elif name == "LIST":
+                    retfields.append(Colorize.color("orange") + f"| {val[0]} v|" + Colorize.color(block.color))
+                else:
+                    retfields.append("==unknown fieldtype==" + val[0])
+            return ''.join(retfields)
+        else:
+            return "No specific decode for " + Translator().translateOpcode(self.opcode.upper())
 
     @staticmethod
     def convert_list_to_block(block):
@@ -421,6 +432,18 @@ class Block:
                 blk = SimpleBlock(**paramdict)
                 blk.color=scratch3["sound"]["color"]
                 return blk
+            elif block['opcode'] in scratch3["variable"]["opcodes"]:
+                blk = VariableBlock(**paramdict)
+                blk.color=scratch3["variable"]["color"]
+                return blk
+            elif block['opcode'] in scratch3["list"]["opcodes"]:
+                blk = ListBlock(**paramdict)
+                blk.color = scratch3["list"]["color"]
+                return blk
+            elif block['opcode'] in scratch3["my"]["opcodes"]:
+                blk = MyBlock(**paramdict)
+                blk.color=scratch3["my"]["color"]
+                return blk
             elif block['opcode'] in scratch3["event"]["opcodes"]:
                 match block['opcode'].upper():
                     case "event_broadcast":
@@ -489,6 +512,26 @@ class SingleMouthBlock(Block):
 class DoubleMouthBlock(Block):
     pass
 
+class VariableBlock(Block):
+    def decodeShadowBlock(self, blocksAST: dict):
+        pass
+
+class ListBlock(Block):
+    def decodeShadowBlock(self, blocksAST: dict):
+        pass
+
+class MyBlock(Block):
+    def decodeShadowBlock(self, blocksAST: dict):
+        val = f"MyBlock decodeShadowBlock {self.opcode}"
+        if self.opcode=="argument_reporter_string_number":
+            val = Colorize.color(self.color)+self.fields['VALUE'][0]
+        return val
+
+    def getDescription(self,ident):
+        desc=super().getDescription(ident)
+        return desc
+
+
 class HatBlock(Block):
     pass
 
@@ -541,6 +584,7 @@ class OperatorBlock(SimpleBlock):
     }
     def decodeShadowBlock(self, blocksAST: dict):
         operator_inputs=[]
+        inp="==None=="
         for name in self.inputNames[self.opcode]:
             try:
                 if name in self.inputs:
