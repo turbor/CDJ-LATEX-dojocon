@@ -1,5 +1,6 @@
 import argparse
 import sys
+import textwrap
 import zipfile
 import json
 from doctest import debug_script
@@ -24,7 +25,14 @@ def check_python_version():
 
 def parse_cli_arguments():
     parser = argparse.ArgumentParser(
-        description="Scratch sb3 parser to provide a text or latex representation of the code blocks in the SB3 file")
+        description = textwrap.dedent("""\
+        Scratch sb3 parser to provide a text or latex representation of the code blocks in the SB3 file.
+        It uses the translation files of the scratch3 project to display he blocks in the correct language.
+        
+        This program is a work in progress. 
+        Please report bugs (preferably together with the sb3 file causing the error).
+        
+        """))
     parser.add_argument('sb3file',
                         help="The sb3 scratch file to parse")
     parser.add_argument('outfile', nargs='?',

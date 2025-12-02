@@ -1,10 +1,14 @@
 from dataclasses import dataclass
 from importlib.metadata import pass_none
 from pprint import pprint,pformat
+
+import colorize
 from colorize import Colorize
 from translator import Translator
 from traceback import clear_frames
+from itertools import count
 import re
+import json
 
 # Function to replace %digit with corresponding value used to resolve the translation string
 def replace_placeholders(text, values):
@@ -13,7 +17,10 @@ def replace_placeholders(text, values):
     except IndexError:
         print("Error: Not enough values for placeholders in translation string")
 
-
+def replace_markers(text):
+    c=count(1)   # from itertools!
+    # Replace both %s and %b in order of appearance
+    return re.sub(r'%[sb]', lambda m: f"%{next(c)}", text)
 
 
 @dataclass(kw_only=True)
@@ -30,14 +37,20 @@ class Block:
     topLevel: bool  # is this a top level block
     x: int  # X coordinate
     y: int  # Y coordinate
+    mutation: dict|None # mutation for MyBlocks
     # These are extra variable that are used in all subclasses
     color=""
+
+
 
     def getDescription(self,ident):
         name = self.opcode.upper()
         # And for translation purposes there is already a special case...
         if name == "CONTROL_IF_ELSE":
             name = "CONTROL_IF"
+        if isinstance(self.mutation, dict):
+            name = replace_markers(self.mutation['proccode'])
+
         return ident + Colorize.color(self.color) + " " + Translator().translateOpcode(name) + " " + Colorize.reset
 
     @classmethod
@@ -69,6 +82,19 @@ class Block:
         return val
 
     def decodeShadowBlock(self, blocksAST: dict):
+        if self.opcode.upper() == "PROCEDURES_PROTOTYPE":
+            result=self.mutation["proccode"]
+            c=count(0)
+            def replace_param(match):
+                if match.group(0)=="%s":
+                    sub=" ( "+json.loads(self.mutation["argumentnames"])[next(c)] + " ) "
+                elif match.group(0) == "%b":
+                    sub = " ( " + json.loads(self.mutation["argumentnames"])[next(c)] + " ) "
+                else:
+                    sub = " ??" + json.loads(self.mutation["argumentnames"])[next(c)] + "?? "
+                return sub
+
+            return re.sub(r'%[sb]', replace_param, result)
         if self.opcode.upper().endswith("_MENU"):
             retfields = []
             for name, val in self.fields.items():
@@ -134,7 +160,8 @@ class Block:
               shadow=False, #block['shadow'],
               topLevel=False, #block['topLevel'],
               x=x,
-              y=y)
+              y=y,
+              mutation=None)
 
     @staticmethod
     def factory(block: dict):
@@ -396,6 +423,9 @@ class Block:
         ],"color":"limegreen","rgb":"#0fbd8c"}
 
         if isinstance(block, dict):
+            a = block.get('mutation')
+            if not a == None:
+                pprint(a)
             paramdict={ "opcode" : block['opcode'],
                         "next" : block['next'],
                         "parent" : block['parent'],
@@ -404,8 +434,11 @@ class Block:
                         "shadow" : block['shadow'],
                         "topLevel" : block['topLevel'],
                         "x" : block.get('x'),
-                        "y" : block.get('y')
+                        "y" : block.get('y'),
+                        "mutation" : block.get('mutation')
                         }
+            if block['opcode']=='procedures_prototype':
+                pass
 
             if block['opcode'] in scratch3["motion"]["opcodes"]:
                 # The motion turnleft/turnright blocks are special because they have a different icon
@@ -439,6 +472,10 @@ class Block:
             elif block['opcode'] in scratch3["list"]["opcodes"]:
                 blk = ListBlock(**paramdict)
                 blk.color = scratch3["list"]["color"]
+                return blk
+            elif block['opcode'] in scratch3["penExtension"]["opcodes"]:
+                blk = PenBlock(**paramdict)
+                blk.color = scratch3["penExtension"]["color"]
                 return blk
             elif block['opcode'] in scratch3["my"]["opcodes"]:
                 blk = MyBlock(**paramdict)
@@ -474,7 +511,7 @@ class Block:
                 return blk
             else:
                 for group in ["sensing","variable",
-                                "list", "my", "musicextension", "penExtension",
+                                "list", "my", "musicextension",
                                 "videoExtension", "faceSensingExtension",
                                 "textToSpeechExtension", "translateExtension",
                                 "makeyMakeyExtension", "microbitExtension",
@@ -490,15 +527,7 @@ class Block:
                         return blk
 
                 #raise Exception(f"unknown opcode to make block from {block['opcode']}")
-                return Block(opcode=block['opcode'],
-                                    next=block['next'],
-                                    parent=block['parent'],
-                                    inputs=block['inputs'],
-                                    fields=block['fields'],
-                                    shadow=block['shadow'],
-                                    topLevel=block['topLevel'],
-                                    x=block.get('x'),
-                                    y=block.get('y'))
+                return Block(**paramdict)
         elif isinstance(block, list):
             return Block.convert_list_to_block(block)
         raise Exception("Unknown block type")
@@ -561,6 +590,7 @@ class MotionBlock(SimpleBlock):
     pass
 
 
+
 class OperatorBlock(SimpleBlock):
     inputNames = {
         "operator_add": ["NUM1","NUM2"],
@@ -602,3 +632,34 @@ class OperatorBlock(SimpleBlock):
         #now colorize some triangles in front and back
         val = Colorize.color(self.color) + "< "+ val + Colorize.color(self.color) + " >"
         return val
+
+
+class PenBlock(SimpleBlock):
+
+    def getDescription(self,ident):
+        opcode2l10n = {
+            "pen_clear": "pen.clear",
+            "pen_stamp": "pen.stamp",
+            "pen_penDown": "pen.penDown",
+            "pen_penUp": "pen.penUp",
+            "pen_setPenColorToColor": "pen.setColor",
+            "pen_changePenColorParamBy": "pen.changeColorParam",
+            "pen_setPenColorParamTo": "pen.setColorParam",
+            "pen_changePenSizeBy": "pen.changeSize",
+            "pen_setPenSizeTo": "pen.setSize",
+            #    "pen.categoryName",
+            #    "pen.changeHue",
+            #    "pen.changeShade",
+            #    "pen.colorMenu.brightness",
+            #    "pen.colorMenu.color",
+            #    "pen.colorMenu.saturation",
+            #    "pen.colorMenu.transparency",
+            #    "pen.setHue",
+            #    "pen.setShade",
+            }
+
+        name = opcode2l10n[self.opcode]
+        # And for translation purposes there is already a special case...
+        if isinstance(self.mutation, dict):
+            name = replace_markers(self.mutation['proccode'])
+        return ident + Colorize.color(self.color) + f"\u270e | " + Translator().translateOpcode(name) + " " + Colorize.reset

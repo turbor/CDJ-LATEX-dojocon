@@ -21,7 +21,7 @@ class Translator(object,metaclass=Singleton):
         q = p / 'editor' / 'extensions' / f"{args.language}.json"
         with q.open() as f:
             for key, value in json.load(f).items():
-                key=key.upper().replace(".","_")
+                #key=key.upper().replace(".","_")
                 if key in self.translate:
                     sys.exit("Need to rethink programs, extensions and blocks l10n have same key!")
                 self.translate[key] = value
