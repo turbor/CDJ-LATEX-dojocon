@@ -1,14 +1,15 @@
 from dataclasses import dataclass
 from importlib.metadata import pass_none
 from pprint import pprint,pformat
-
+from deco import Deco
 import colorize
-from colorize import Colorize
+from colorize import Color
 from translator import Translator
 from traceback import clear_frames
 from itertools import count
 import re
 import json
+import argparse
 
 # Function to replace %digit with corresponding value used to resolve the translation string
 def replace_placeholders(text, values):
@@ -49,16 +50,99 @@ class Block:
         if name == "CONTROL_IF_ELSE":
             name = "CONTROL_IF"
         if isinstance(self.mutation, dict):
-            name = replace_markers(self.mutation['proccode'])
+            if 'proccode' in self.mutation:
+                name = replace_markers(self.mutation['proccode'])
+        return ident + Deco.rator("blok",Translator().translateOpcode(name),self)
 
-        return ident + Colorize.color(self.color) + " " + Translator().translateOpcode(name) + " " + Colorize.reset
+    def decodeBlocksInput(self, blocksAST: dict):
+        stack1 = None
+        stack2 = None
+        params = []
+        for name, arr in self.inputs.items():
+            if name == 'SUBSTACK':
+                stack1 = arr[1]
+            elif name == 'SUBSTACK2':
+                stack2 = arr[1]
+            else:
+                val = Block.decodeInputFieldArray(arr,blocksAST,self)
+                val = val # + Color.color(block.color)
+                params.append(val)
+        return (stack1, stack2, params)
+
+
+    def decodeBlocksField(self, blocksAST: dict):
+        retfields = []
+        for name, val in self.fields.items():
+            if name == "VARIABLE":
+                #retfields.append(Colorize.color("amber")+f" {val[0]} "+Colorize.color(block.color))
+                retfields.append(Deco.rator("var",val[0],self))
+            elif name == "LIST":
+                #retfields.append(Colorize.color("orange")+f"| {val[0]} v|"+Colorize.color(block.color))
+                retfields.append(Deco.rator("|v|", val[0], self))
+            elif name == "BROADCAST_OPTION":
+                # retfields.append(Colorize.color("orange")+f"| {val[0]} v|"+Colorize.color(block.color))
+                retfields.append(Deco.rator("|v|", val[0], self))
+            else:
+                retfields.append("==unknown fieldtype=="+val[0])
+        return retfields
+
+
+    def textDecodeBlock(self, ident: str, blocksAST: dict, args: argparse.Namespace):
+        # First the translated text for this opcode
+        description = self.getDescription(ident)
+
+        # These are the fields and inputs for this block
+        substack1 = None
+        substack2 = None
+        fields = []
+        inputs = []
+
+        # decode the fields if any are specified
+        if len(self.fields) > 0:
+            fields = self.decodeBlocksField(blocksAST)
+
+        if self.opcode.upper() == "MOTION_TURNRIGHT":
+            # pass for debug break purposes
+            pass
+        # decode the inputs if any are specified
+        if len(self.inputs) > 0:
+            (substack1, substack2, inputs) = self.decodeBlocksInput(blocksAST)
+        # Quick fix flag clicked translation
+        if self.opcode.upper() == "EVENT_WHENFLAGCLICKED":
+            # inputs.insert(0, Translator().translateOpcode("green flag"))
+            inputs.insert(0, "\U0001f3f3\ufe0f\u200d\U0001f7e9")
+            # combine the fields and inputs and update the description with the placeholders
+
+        inputs = [*fields, *inputs]
+        if len(inputs) > 0:
+            description = replace_placeholders(description, inputs)
+
+        # print the final translated description
+        print(description)
+
+        # Check if there is a first C-mouth (while,loop,if-then)
+        newindent = Deco.indent(ident, self)
+        if substack1 is not None:
+            self.outputBlocks(blocksAST[substack1], newindent, blocksAST, args)
+            # Check if there is a second C-mouth (if-then-else)
+            if substack2 is not None:
+                print(ident + Color.color(block.color) + " " + Translator().translateOpcode(
+                    "CONTROL_ELSE") + " " + Color.reset)
+                self.outputBlocks(blocksAST[substack2], newindent, blocksAST, args)
+            print(ident + Color.color(block.color) + "_" * 8 + Color.reset)
+
+    def outputBlocks(self, ident: str, blocksAST: dict, args: argparse.Namespace):
+        block = self
+        while block != None:
+            block.textDecodeBlock(ident, blocksAST, args)
+            block = blocksAST[block.next] if block.next != None else None
 
     @classmethod
-    def decodeInputFieldValue(self, arr, blocksAST: dict):
+    def decodeInputFieldValue(self, arr, blocksAST: dict, block):
         if isinstance(arr, str):
             # this is a shadow block, so the string is the block name
             shad = blocksAST[arr]
-            return shad.decodeShadowBlock(blocksAST) # recursively decode the shadow block
+            return shad.decodeShadowBlock(blocksAST,block) # recursively decode the shadow block
         if isinstance(arr, list):
             numid = arr[0]
             val = arr[1]
@@ -69,19 +153,20 @@ class Block:
         return "Block.decodeInputFieldValue() failed"
 
     @classmethod
-    def decodeInputFieldArray(cls, arr: list, blocksAST: dict):
+    def decodeInputFieldArray(cls, arr: list, blocksAST: dict, block):
         val = "(unknown decodeInputFieldArray first element \"" + pformat(arr) + "\")"
         if arr[0] == 1:  # input is a shadow aka simple round input with constant in it
-            val = cls.decodeInputFieldValue(arr[1], blocksAST)
+            val = cls.decodeInputFieldValue(arr[1], blocksAST,block)
             #color these black on white background
-            val = Colorize.color("white") +f" {val} "
+            #val = Colorize.color("white") +f" {val} "
+            val=Deco.rator("()",val,block)
         elif arr[0] == 2:  # there is no shadow
-            val = cls.decodeInputFieldValue(arr[1], blocksAST)
+            val = cls.decodeInputFieldValue(arr[1], blocksAST,block)
         elif arr[0] == 3:  # there is a shadow but obscured by the input
-            val = cls.decodeInputFieldValue(arr[1], blocksAST)
+            val = cls.decodeInputFieldValue(arr[1], blocksAST,block)
         return val
 
-    def decodeShadowBlock(self, blocksAST: dict):
+    def decodeShadowBlock(self, blocksAST: dict, parentblock ):
         if self.opcode.upper() == "PROCEDURES_PROTOTYPE":
             result=self.mutation["proccode"]
             c=count(0)
@@ -99,9 +184,9 @@ class Block:
             retfields = []
             for name, val in self.fields.items():
                 if name == "VARIABLE":
-                    retfields.append(Colorize.color("amber") + f" {val[0]} " + Colorize.color(block.color))
+                    retfields.append(Color.color("amber") + f" {val[0]} " + Color.color(block.color))
                 elif name == "LIST":
-                    retfields.append(Colorize.color("orange") + f"| {val[0]} v|" + Colorize.color(block.color))
+                    retfields.append(Color.color("orange") + f"| {val[0]} v|" + Color.color(block.color))
                 else:
                     retfields.append("==unknown fieldtype==" + val[0])
             return ''.join(retfields)
@@ -424,8 +509,8 @@ class Block:
 
         if isinstance(block, dict):
             a = block.get('mutation')
-            if not a == None:
-                pprint(a)
+            #if not a == None:
+            #    pprint(a)
             paramdict={ "opcode" : block['opcode'],
                         "next" : block['next'],
                         "parent" : block['parent'],
@@ -542,18 +627,18 @@ class DoubleMouthBlock(Block):
     pass
 
 class VariableBlock(Block):
-    def decodeShadowBlock(self, blocksAST: dict):
+    def decodeShadowBlock(self, blocksAST: dict ,parentblock: Block):
         pass
 
 class ListBlock(Block):
-    def decodeShadowBlock(self, blocksAST: dict):
+    def decodeShadowBlock(self, blocksAST: dict ,parentblock: Block):
         pass
 
 class MyBlock(Block):
-    def decodeShadowBlock(self, blocksAST: dict):
+    def decodeShadowBlock(self, blocksAST: dict ,parentblock: Block):
         val = f"MyBlock decodeShadowBlock {self.opcode}"
         if self.opcode=="argument_reporter_string_number":
-            val = Colorize.color(self.color)+self.fields['VALUE'][0]
+            val = Color.color(self.color) + self.fields['VALUE'][0]
         return val
 
     def getDescription(self,ident):
@@ -612,25 +697,26 @@ class OperatorBlock(SimpleBlock):
         "operator_round": ["NUM"],
         "operator_mathop": ["OPERATOR", "NUM"]
     }
-    def decodeShadowBlock(self, blocksAST: dict):
+    def decodeShadowBlock(self, blocksAST: dict, parentblock: Block):
         operator_inputs=[]
         inp="==None=="
         for name in self.inputNames[self.opcode]:
             try:
                 if name in self.inputs:
-                    inp = self.decodeInputFieldArray(self.inputs[name], blocksAST)
+                    inp = self.decodeInputFieldArray(self.inputs[name], blocksAST,self)
                 else:
                     #inp = self.decodeInputFieldArray(self.fields[name], blocksAST)
                     inp = self.fields[name][0]
             except KeyError:
                 raise Exception(f"Missing input {name} for operator {self.opcode} : \n"+pformat(self,indent=3,compact=True))
             #add to list but make sure that we switch back to our own color!!
-            operator_inputs.append(inp+Colorize.color(self.color))
+            operator_inputs.append(inp + Color.color(self.color))
         opername = self.opcode.upper().replace("TOR_", "TORS_")
         val = Translator().translateOpcode(opername)
         val = replace_placeholders(val, operator_inputs)
         #now colorize some triangles in front and back
-        val = Colorize.color(self.color) + "< "+ val + Colorize.color(self.color) + " >"
+        val = Color.color(self.color) + "< " + val + Color.color(self.color) + " >"
+        val = Deco.rator("<>",val,self)
         return val
 
 
@@ -662,4 +748,4 @@ class PenBlock(SimpleBlock):
         # And for translation purposes there is already a special case...
         if isinstance(self.mutation, dict):
             name = replace_markers(self.mutation['proccode'])
-        return ident + Colorize.color(self.color) + f"\u270e | " + Translator().translateOpcode(name) + " " + Colorize.reset
+        return ident + Deco.rator("blok", f"\u270e : " + Translator().translateOpcode(name) + " " ,self)

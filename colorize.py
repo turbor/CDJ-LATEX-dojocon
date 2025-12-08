@@ -1,43 +1,49 @@
 import re
 
-class Colorize:
+class Color:
     reset='\033[0m'
     bold='\033[1m'
     underline='\033[4m'
+    bluebg='\033[97;44m'
+    fg_white='\033[97m'
 
     colorvals={
-            "blueberry":"\033[38;5;15;48;5;75m",
-            "lightviolet": "\033[38;5;15;48;5;141m",
-            "magenta": "\033[38;5;15;48;5;176m",
-            "amber":"\033[38;5;15;48;5;220m",
-            "brightyellow": "\033[38;5;15;48;5;214m",
-            "moderateblue": "\033[38;5;15;48;5;110m",
-            "coolgreen": "\033[38;5;15;48;5;114m",
-            "mango":"\033[38;5;0;48;5;215m",
-            "orange":"\033[38;5;0;48;5;202m",
-            "hotpink":"\033[38;5;0;48;5;211m",
-            "limegreen":"\033[38;5;0;48;5;43m",
-            "white": "\033[38;5;0;48;5;15m"
+            "blueberry":[15,75],
+            "lightviolet": [15,141],
+            "magenta": [15,176],
+            "amber":[15,220],
+            "brightyellow": [15,214],
+            "moderateblue": [15,110],
+            "coolgreen": [15,114],
+            "mango":[0,215],
+            "orange":[0,202],
+            "hotpink":[0,211],
+            "limegreen":[0,43],
+            "white": [0,15]
         }
 
     @staticmethod
     def contrastletters():
-        for key,name in Colorize.colorvals.items():
-            result=re.sub("38;5;(\d+);?","",name)
-            cl = re.search("48;5;(\d+)",result).group(1)
-            cl = int(cl)-16
+        for key,name in Color.colorvals.items():
+            fg,bg= name
+            cl = int(bg)-16
             r,g,b = cl//36,(cl//6)%6,cl%6
-            cl = 16 if (r*r+g*g+b*b)>36 else 231
-            result = result.replace("[",f"[38;5;{cl};")
-            Colorize.colorvals[key]=result
+            fg = 16 if (r*r+g*g+b*b)>36 else 231
+            Color.colorvals[key]=[fg,bg]
 
 
     @staticmethod
-    def color(text):
-        if not text=="" and not text in Colorize.colorvals:
+    def color(text,val="fb"):
+        if not text=="" and not text in Color.colorvals:
             print("Colorize unknown color:",text)
             sys.exit(1)
 
-
-        colorval=Colorize.colorvals.get(text,"\033[38;5;160;48;5;180m")
+        fg,bg = Color.colorvals[text]
+        match val:
+            case "bf":
+                colorval = f"\033[38;5;{bg};48;5;{fg}m"
+            case "b":
+                colorval = f"\033[48;5;{bg}m"
+            case _:
+                colorval=f"\033[38;5;{fg};48;5;{bg}m"
         return colorval # + text + '\033[0m'

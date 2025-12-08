@@ -3,6 +3,7 @@ import sys
 import textwrap
 import zipfile
 import json
+from deco import Deco
 from doctest import debug_script
 from logging import exception
 from dataclasses import dataclass
@@ -10,10 +11,11 @@ from textwrap import indent
 import re
 from pprint import pprint
 from block import  Block
-from colorize import Colorize
+from colorize import Color
 from sprite import Sprite
 from monitor import Monitor
 from translator import Translator
+from dumpAst import dumpAst
 
 data = {}
 
@@ -29,17 +31,19 @@ def parse_cli_arguments():
         Scratch sb3 parser to provide a text or latex representation of the code blocks in the SB3 file.
         It uses the translation files of the scratch3 project to display he blocks in the correct language.
         
+        Using an xterm with the FiraCode Nerd Font for the extra unicode chars is recommended.
         This program is a work in progress. 
         Please report bugs (preferably together with the sb3 file causing the error).
         
-        """))
+        """),formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('sb3file',
                         help="The sb3 scratch file to parse")
     parser.add_argument('outfile', nargs='?',
                         help="Outputfile, otherwise stdout is used")
     parser.add_argument("-v", "--verbosity", action="count", default=0,
                         help="Increase verbosity while parsing")
-    parser.add_argument("-f", "--format", choices=["text", "latex"],
+    parser.add_argument("-f", "--format", choices=["plain", "ansi", "latex"],
+                        default="ansi",
                         help="Outputformat to use")
     parser.add_argument("-l", "--language", default="en",
                         help="Language used to show blocks\nTry to use the environments langue if not selected")
@@ -91,6 +95,7 @@ def create_monitor(monitor: dict, args):
                    )
 
 
+
 def create_sprite(target, args):
     sprite = Sprite(target['isStage'],
                     target['name'],
@@ -109,17 +114,9 @@ def create_sprite(target, args):
     """get the codeblocks from this sprite and print them out"""
     #print(json.dumps(target['blocks'], indent=2))
     sprite.blocksAST = buildAST(target['blocks'], args)
+    #debug info
+    dumpAst(sprite.blocksAST)
     return sprite
-
-def print_boxed(title: str):
-    print("+-" + "-" * len(title) + "-+")
-    print(f"| {title} |")
-    print("+-" + "-" * len(title) + "-+")
-
-def print_underlined(title: str):
-    print(f"\n\n {title} ")
-    print("=" * max (20, 2 + len(title)) )
-
 
 
 def main(args):
@@ -131,7 +128,7 @@ def main(args):
         sys.exit(1)
 
     if not args.sprite:
-        print_boxed("Extensions used")
+        Deco.print_boxed("Extensions used")
         if len(data['extensions']) == 0:
             print("No extra extensions used.")
         else:
@@ -139,33 +136,34 @@ def main(args):
                 print(f"* {ext}")
         print()
 
-        print_boxed("Monitors")
+        Deco.print_boxed("Monitors")
         for monitor in data['monitors']:
             monitor_object = create_monitor(monitor, args)
             monitor_object.dumpInfo()
 
-        print_boxed("Targets")
+        Deco.print_boxed("Targets")
 
     for target in data['targets']:
         if not args.sprite or target['name'] in args.sprite:
-            print_underlined(target['name'])
+            Deco.print_underlined(target['name'])
             sprite_object = create_sprite(target, args)
             sprite_object.dumpBlocks(args)
 
     if not args.sprite:
-        print_boxed("Metadata")
+        Deco.print_boxed("Metadata")
         for target in data['meta']:
             print(f"{target:>7}: {data['meta'][target]}")
 
     if args.verbosity:
         print("\n\n")
-        print_underlined("Dump of project.json")
+        Deco.print_underlined("Dump of project.json")
         print(json.dumps(data, indent=2))
 
 
 if __name__ == '__main__':
     check_python_version()
-    Colorize.contrastletters()
+    Color.contrastletters()
     args = parse_cli_arguments()
+    Deco.output=args.format
     Translator().read_translation_files(args)
     main(args)
