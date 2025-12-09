@@ -1,23 +1,10 @@
 from dataclasses import dataclass
 from block import Block
-from colorize import Color
-from translator import Translator
 import argparse
-import re
-from deco import Deco
-
-# Function to replace %digit with corresponding value used to resolve the translation string
-def replace_placeholders(text, values):
-    try:
-        return re.sub(r'%(\d+)', lambda m: " " + str(values[int(m.group(1)) - 1]) + " ", text)
-    except IndexError:
-        print("Error: Not enough values for placeholders in translation string")
-
-    # return re.sub(r'%(\d+)', lambda m: "(" + str(values[int(m.group(1)) - 1]) + ")", text)
-
 
 @dataclass
 class Sprite:
+    """The sprite class represents the scratch sprites and background stage."""
     isStage: bool
     name: str
     variables: dict
@@ -32,18 +19,25 @@ class Sprite:
     volume: int
 
     def dumpBlocks(self, args):
+        """
+        This will output the coding blocks for this sprite.
+         Kind a like the coding tab in the scratch editor window.
+
+         For now it is a random dump of all the coding blocks. We could
+         use the x,y coordinates of the toplevel blocks to sort them
+         efore printing, but for now simply loop over them and print
+         disregarding any visual clues.
+         """
         for name, block in self.blocksAST.items():
             if block.topLevel:
                 print()
                 self.outputBlocks(block, "", self.blocksAST, args)
 
-
-
     def outputBlocks(self, block: Block, ident: str, blocksAST: dict, args: argparse.Namespace):
+        """
+        Print a block and all the blocks connected below this block.
+        The ident is used if you need to print blocks included in a C-group
+        """
         while block != None:
             block.textDecodeBlock(ident, blocksAST, args)
             block = blocksAST[block.next] if block.next != None else None
-
-
-
-

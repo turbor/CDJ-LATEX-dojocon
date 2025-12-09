@@ -1,14 +1,20 @@
 import re
 
 class Color:
+    """A heplper class mainly used to help with the anssi colorcodes when printing the blocks"""
+
+    # Some class variables to print some default
     reset='\033[0m'
     bold='\033[1m'
     underline='\033[4m'
     bluebg='\033[97;44m'
     fg_white='\033[97m'
 
+    # A dictionary with the color names used in the scratch wiki for the blocks
+    # It contains the colorcode and the color for a contrasting text
+
     colorvals={
-            "blueberry":[15,75],
+            "blueberry":[15,75],  # Name : [textcolor, bgcolor]
             "lightviolet": [15,141],
             "magenta": [15,176],
             "amber":[15,220],
@@ -24,6 +30,9 @@ class Color:
 
     @staticmethod
     def contrastletters():
+        """
+        Calculate the optimal text color to contrast against the background
+        """"
         for key,name in Color.colorvals.items():
             fg,bg= name
             cl = int(bg)-16
@@ -34,6 +43,11 @@ class Color:
 
     @staticmethod
     def color(text,val="fb"):
+        """
+        Get the ansicode for the given color.
+        By default the ansii code for both text/foreground color and background color is returned
+        However you can ask for only setting the foreground or background color,
+        """
         if not text=="" and not text in Color.colorvals:
             print("Colorize unknown color:",text)
             sys.exit(1)
