@@ -1,3 +1,4 @@
+import sys
 from dataclasses import dataclass
 from importlib.metadata import pass_none
 from pprint import pprint,pformat
@@ -11,18 +12,29 @@ import re
 import json
 import argparse
 
-# Function to replace %digit with corresponding value used to resolve the translation string
+
+
 def replace_placeholders(text, values):
+    """
+    Function to replace %digit with corresponding value used to resolve the translation string
+    These strings are used in the l10n files. ex:  "say %1 for %2 seconds"
+    """
     try:
         return re.sub(r'%(\d+)', lambda m: str(values[int(m.group(1)) - 1]) , text)
     except IndexError:
         print("Error: Not enough values for placeholders in translation string")
 
 def replace_markers(text):
+    """
+    Utility for procedure definition strings
+    Replace both %s and %b in order of appearance
+    ex: "dance speed %s rotate %b sing %b" => "dance speed %1 rotate %2 sing %3"
+    """
     c=count(1)   # from itertools!
-    # Replace both %s and %b in order of appearance
     return re.sub(r'%[sb]', lambda m: f"%{next(c)}", text)
 
+def replace_namedinput(text:str, inputs:dict):
+    return re.sub(r'(?<!\x1b)\[([^\]]+)\]', lambda m: str(inputs[m.group(1)]), text)
 
 @dataclass(kw_only=True)
 class Block:
@@ -45,6 +57,11 @@ class Block:
 
 
     def getDescription(self,ident):
+        """
+        Main purpose of this method is to get the translated version
+        of the opcode of this block. No '%1,'%2' replacement
+        or '[inputname]' resolving yet.
+        """
         name = self.opcode.upper()
         # And for translation purposes there is already a special case...
         if name == "CONTROL_IF_ELSE":
@@ -123,13 +140,13 @@ class Block:
         # Check if there is a first C-mouth (while,loop,if-then)
         newindent = Deco.indent(ident, self)
         if substack1 is not None:
-            self.outputBlocks(blocksAST[substack1], newindent, blocksAST, args)
+            blocksAST[substack1].outputBlocks( newindent, blocksAST, args)
             # Check if there is a second C-mouth (if-then-else)
             if substack2 is not None:
                 print(ident + Color.color(block.color) + " " + Translator().translateOpcode(
                     "CONTROL_ELSE") + " " + Color.reset)
-                self.outputBlocks(blocksAST[substack2], newindent, blocksAST, args)
-            print(ident + Color.color(block.color) + "_" * 8 + Color.reset)
+                blocksAST[substack2].outputBlocks(newindent, blocksAST, args)
+            print(ident + Color.color(self.color) + "_" * 8 + Color.reset)
 
     def outputBlocks(self, ident: str, blocksAST: dict, args: argparse.Namespace):
         block = self
@@ -269,7 +286,9 @@ class Block:
             "motion_setrotationstyle",
             "motion_xposition",
             "motion_yposition",
-            "motion_direction"
+            "motion_direction",
+            "motion_goto_menu", # this is the dropdown menu/shadowblock
+            "motion_glideto_menu"  # this is the dropdown menu/shadowblock
         ],"color":"blueberry","rgb":"4c97ff"}
         scratch3["looks"] ={"opcodes": [
             "looks_sayforsecs",
@@ -672,7 +691,20 @@ class EventBlock(HatBlock):
     pass
 
 class MotionBlock(SimpleBlock):
-    pass
+    def decodeShadowBlock(self, blocksAST: dict, parentblock ):
+        if self.opcode == "motion_goto_menu" or self.opcode == "motion_glideto_menu":
+            destination = self.fields['TO']
+            if isinstance(destination,list):
+                match destination[0]:
+                    case "_random_":
+                        destination = Translator().translateOpcode("MOTION_GOTO_RANDOM")
+                    case "_mouse_":
+                        destination = Translator().translateOpcode("MOTION_GOTO_POINTER")
+                    case _:
+                        pass # name of sprite to go to
+                return destination
+        sys.exit(1)
+
 
 
 
@@ -719,33 +751,4 @@ class OperatorBlock(SimpleBlock):
         val = Deco.rator("<>",val,self)
         return val
 
-
-class PenBlock(SimpleBlock):
-
-    def getDescription(self,ident):
-        opcode2l10n = {
-            "pen_clear": "pen.clear",
-            "pen_stamp": "pen.stamp",
-            "pen_penDown": "pen.penDown",
-            "pen_penUp": "pen.penUp",
-            "pen_setPenColorToColor": "pen.setColor",
-            "pen_changePenColorParamBy": "pen.changeColorParam",
-            "pen_setPenColorParamTo": "pen.setColorParam",
-            "pen_changePenSizeBy": "pen.changeSize",
-            "pen_setPenSizeTo": "pen.setSize",
-            #    "pen.categoryName",
-            #    "pen.changeHue",
-            #    "pen.changeShade",
-            #    "pen.colorMenu.brightness",
-            #    "pen.colorMenu.color",
-            #    "pen.colorMenu.saturation",
-            #    "pen.colorMenu.transparency",
-            #    "pen.setHue",
-            #    "pen.setShade",
-            }
-
-        name = opcode2l10n[self.opcode]
-        # And for translation purposes there is already a special case...
-        if isinstance(self.mutation, dict):
-            name = replace_markers(self.mutation['proccode'])
-        return ident + Deco.rator("blok", f"\u270e : " + Translator().translateOpcode(name) + " " ,self)
+from penblock import PenBlock

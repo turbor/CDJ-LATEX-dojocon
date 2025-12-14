@@ -32,7 +32,7 @@ class Color:
     def contrastletters():
         """
         Calculate the optimal text color to contrast against the background
-        """"
+        """
         for key,name in Color.colorvals.items():
             fg,bg= name
             cl = int(bg)-16
