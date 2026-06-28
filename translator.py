@@ -1,4 +1,5 @@
 import json
+import sys
 from pathlib import Path
 
 #Implement singleton (anti?)pattern as metaclass

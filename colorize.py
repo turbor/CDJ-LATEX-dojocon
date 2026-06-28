@@ -1,4 +1,5 @@
 import re
+import sys
 
 class Color:
     """A heplper class mainly used to help with the anssi colorcodes when printing the blocks"""
@@ -48,7 +49,7 @@ class Color:
         By default the ansii code for both text/foreground color and background color is returned
         However you can ask for only setting the foreground or background color,
         """
-        if not text=="" and not text in Color.colorvals:
+        if  text == "" or text not in Color.colorvals:
             print("Colorize unknown color:",text)
             sys.exit(1)
 

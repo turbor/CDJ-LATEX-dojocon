@@ -48,6 +48,11 @@ def parse_cli_arguments():
                         help="Outputfile, otherwise stdout is used")
     parser.add_argument("-v", "--verbosity", action="count", default=0,
                         help="Increase verbosity while parsing")
+                        # 0 = not verbose
+                        # 1 = +content of sb3 file
+                        # 2 = +dump AST building per sprite
+                        # 3 = +dump project.json
+
     parser.add_argument("-f", "--format", choices=["plain", "ansi", "latex"],
                         default="ansi",
                         help="Outputformat to use")
@@ -61,8 +66,15 @@ def parse_cli_arguments():
     args = parser.parse_args()
     return args
 
+def show_sb3_files(sb3_file: str):
+    with zipfile.ZipFile(sb3_file) as archive:
+        maxLength=10
+        for info in archive.filelist:
+            maxLength=max(maxLength,len(info.filename))
+        for info in archive.filelist:
+            print(f"{info.filename:>{maxLength}} : {info.file_size}")
 
-def get_json_info(filename):
+def get_json_info(filename: str):
     """Extract and parse the project.json file from the sb3 archive"""
     with zipfile.ZipFile(filename) as archive:
         with archive.open("project.json") as file:
@@ -131,12 +143,25 @@ def create_sprite(target, args):
     #print(json.dumps(target['blocks'], indent=2))
     sprite.blocksAST = buildAST(target['blocks'], args)
     #debug info
-    dumpAst(sprite.blocksAST)
+    if args.verbosity > 1:
+        dumpAst(sprite.blocksAST)
     return sprite
 
 
 def main(args):
     global data
+
+    # To help debugging we can dump the entire json
+    if args.verbosity > 0:
+        try:
+            Deco.print_underlined(f"files in {args.sb3file}")
+            # Read the json from the sb3 file specified
+            show_sb3_files(args.sb3file)
+        except Exception as e:
+            # Something went wrong so quit.
+            print(e)
+            sys.exit(1)
+
     try:
         # Read the json from the sb3 file specified
         data = get_json_info(args.sb3file)
@@ -144,6 +169,13 @@ def main(args):
         # Something went wrong so quit.
         print(e)
         sys.exit(1)
+
+    # To help debugging we can dump the entire json
+    if args.verbosity > 2:
+            print("\n\n")
+            Deco.print_underlined("Dump of project.json")
+            print(json.dumps(data, indent=2))
+            print("\n\n")
 
     # If we did not ask for a specific sprite we print a lot of the extra info present in the json.
     if not args.sprite:
@@ -178,11 +210,6 @@ def main(args):
         for target in data['meta']:
             print(f"{target:>7}: {data['meta'][target]}")
 
-    # To help debugging we can dump the entire json
-    if args.verbosity:
-        print("\n\n")
-        Deco.print_underlined("Dump of project.json")
-        print(json.dumps(data, indent=2))
 
 
 if __name__ == '__main__':

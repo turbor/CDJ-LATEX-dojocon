@@ -11,7 +11,7 @@ from itertools import count
 import re
 import json
 import argparse
-
+from scratch3 import SCRATCH3, OPCODE_TO_CATEGORY
 
 
 def replace_placeholders(text, values):
@@ -62,7 +62,7 @@ class Block:
         of the opcode of this block. No '%1,'%2' replacement
         or '[inputname]' resolving yet.
         """
-        name = self.opcode.upper()
+        name = self.opcode
         # And for translation purposes there is already a special case...
         if name == "CONTROL_IF_ELSE":
             name = "CONTROL_IF"
@@ -99,6 +99,18 @@ class Block:
             elif name == "BROADCAST_OPTION":
                 # retfields.append(Colorize.color("orange")+f"| {val[0]} v|"+Colorize.color(block.color))
                 retfields.append(Deco.rator("|v|", val[0], self))
+            elif name == "STYLE": # rotation style
+                retfields.append(Deco.rator("|v|",val[0],self))
+            elif name == "KEY_OPTION": # keypressed option
+                retfields.append(Deco.rator("|v|", val[0], self))
+            elif name == "EFFECT": # looks_changeeffectby
+                retfields.append(Deco.rator("|v|", val[0], self))
+            elif name == "FRONT_BACK": # looks_gotofrontback
+                retfields.append(Deco.rator("|v|", val[0], self))
+            elif name == "FORWARD_BACKWARD": # looks_goforwardbackwardlayers
+                retfields.append(Deco.rator("|v|", val[0], self))
+            elif name == "BACKDROP": # event_whenbackdropswitchesto
+                retfields.append(Deco.rator("|v|", val[0], self))
             else:
                 retfields.append("==unknown fieldtype=="+val[0])
         return retfields
@@ -118,14 +130,14 @@ class Block:
         if len(self.fields) > 0:
             fields = self.decodeBlocksField(blocksAST)
 
-        if self.opcode.upper() == "MOTION_TURNRIGHT":
+        if self.opcode == "LOOKS_CHANGEEFFECTBY":
             # pass for debug break purposes
             pass
         # decode the inputs if any are specified
         if len(self.inputs) > 0:
             (substack1, substack2, inputs) = self.decodeBlocksInput(blocksAST)
         # Quick fix flag clicked translation
-        if self.opcode.upper() == "EVENT_WHENFLAGCLICKED":
+        if self.opcode == "EVENT_WHENFLAGCLICKED":
             # inputs.insert(0, Translator().translateOpcode("green flag"))
             inputs.insert(0, "\U0001f3f3\ufe0f\u200d\U0001f7e9")
             # combine the fields and inputs and update the description with the placeholders
@@ -143,7 +155,7 @@ class Block:
             blocksAST[substack1].outputBlocks( newindent, blocksAST, args)
             # Check if there is a second C-mouth (if-then-else)
             if substack2 is not None:
-                print(ident + Color.color(block.color) + " " + Translator().translateOpcode(
+                print(ident + Color.color(self.color) + " " + Translator().translateOpcode(
                     "CONTROL_ELSE") + " " + Color.reset)
                 blocksAST[substack2].outputBlocks(newindent, blocksAST, args)
             print(ident + Color.color(self.color) + "_" * 8 + Color.reset)
@@ -172,7 +184,7 @@ class Block:
     @classmethod
     def decodeInputFieldArray(cls, arr: list, blocksAST: dict, block):
         val = "(unknown decodeInputFieldArray first element \"" + pformat(arr) + "\")"
-        if arr[0] == 1:  # input is a shadow aka simple round input with constant in it
+        if arr[0] == 1:  # input is a shadow block aka simple round input with constant in it
             val = cls.decodeInputFieldValue(arr[1], blocksAST,block)
             #color these black on white background
             #val = Colorize.color("white") +f" {val} "
@@ -184,7 +196,7 @@ class Block:
         return val
 
     def decodeShadowBlock(self, blocksAST: dict, parentblock ):
-        if self.opcode.upper() == "PROCEDURES_PROTOTYPE":
+        if self.opcode == "PROCEDURES_PROTOTYPE":
             result=self.mutation["proccode"]
             c=count(0)
             def replace_param(match):
@@ -197,18 +209,23 @@ class Block:
                 return sub
 
             return re.sub(r'%[sb]', replace_param, result)
-        if self.opcode.upper().endswith("_MENU"):
+        simplemenus=['sound_sounds_menu','control_create_clone_of_menu']
+        if self.opcode in simplemenus:
+            for name,val in self.fields.items():
+             return f"| {val[0]} VV|"
+        else:
+          if self.opcode.endswith("_MENU"):
             retfields = []
             for name, val in self.fields.items():
                 if name == "VARIABLE":
-                    retfields.append(Color.color("amber") + f" {val[0]} " + Color.color(block.color))
+                    retfields.append(Color.color("amber") + f" {val[0]} " + Color.color(self.color))
                 elif name == "LIST":
-                    retfields.append(Color.color("orange") + f"| {val[0]} v|" + Color.color(block.color))
+                    retfields.append(Color.color("orange") + f"| {val[0]} v|" + Color.color(self.color))
                 else:
-                    retfields.append("==unknown fieldtype==" + val[0])
+                    retfields.append(f"==unknown fieldtype== at {__file__}:{sys._getframe().f_lineno}  {name}:{val}")
             return ''.join(retfields)
-        else:
-            return "No specific decode for " + Translator().translateOpcode(self.opcode.upper())
+          else:
+            return "No specific decode for " + Translator().translateOpcode(self.opcode)
 
     @staticmethod
     def convert_list_to_block(block):
@@ -267,374 +284,105 @@ class Block:
 
     @staticmethod
     def factory(block: dict):
-        scratch3={}
-        scratch3["motion"] ={"opcodes": [
-            "motion_movesteps",
-            "motion_turnright",
-            "motion_turnleft",
-            "motion_goto",
-            "motion_gotoxy",
-            "motion_glideto",
-            "motion_glidesecstoxy",
-            "motion_pointindirection",
-            "motion_pointtowards",
-            "motion_changexby",
-            "motion_setx",
-            "motion_changeyby",
-            "motion_sety",
-            "motion_ifonedgebounce",
-            "motion_setrotationstyle",
-            "motion_xposition",
-            "motion_yposition",
-            "motion_direction",
-            "motion_goto_menu", # this is the dropdown menu/shadowblock
-            "motion_glideto_menu"  # this is the dropdown menu/shadowblock
-        ],"color":"blueberry","rgb":"4c97ff"}
-        scratch3["looks"] ={"opcodes": [
-            "looks_sayforsecs",
-            "looks_say",
-            "looks_thinkforsecs",
-            "looks_think",
-            "looks_switchcostumeto",
-            "looks_nextcostume",
-            "looks_switchbackdropto",
-            "looks_switchbackdroptoandwait",
-            "looks_nextbackdrop",
-            "looks_changesizeby",
-            "looks_setsizeto",
-            "looks_changeeffectby",
-            "looks_seteffectto",
-            "looks_cleargraphiceffects",
-            "looks_show",
-            "looks_hide",
-            "looks_gotofrontback",
-            "looks_goforwardbackwardlayers",
-            "looks_costumenumbername",
-            "looks_backdropnumbername",
-            "looks_size"
-        ],"color":"lightviolet","rgb":"#9966ff"}
-        scratch3["sound"] ={"opcodes":  [
-            "sound_playuntildone",
-            "sound_play",
-            "sound_stopallsounds",
-            "sound_changeeffectby",
-            "sound_seteffectto",
-            "sound_cleareffects",
-            "sound_changevolumeby",
-            "sound_setvolumeto",
-            "sound_volume"
-        ],"color":"magenta","rgb":"#cf5acf"}
-        scratch3["event"] ={"opcodes":  [
-            "event_whenflagclicked",
-            "event_whenkeypressed",
-            "event_whenthisspriteclicked",
-            "event_whenstageclicked",
-            "event_whenbackdropswitchesto",
-            "event_whengreaterthan",
-            "event_whenbroadcastreceived",
-            "event_broadcast",
-            "event_broadcastandwait"
-        ],"color":"amber","rgb":"#ffbf00"}
-        scratch3["control"] ={"opcodes":  [
-            "control_wait",
-            "control_repeat",
-            "control_forever",
-            "control_if",
-            "control_if_else",
-            "control_wait_until",
-            "control_repeat_until",
-            "control_stop",
-            "control_start_as_clone",
-            "control_create_clone_of",
-            "control_delete_this_clone"
-        ],"color":"brightyellow","rgb":"#ffab19"}
-        scratch3["sensing"] ={"opcodes":  [
-            "sensing_touchingobject",
-            "sensing_touchingcolor",
-            "sensing_coloristouchingcolor",
-            "sensing_distanceto",
-            "sensing_askandwait",
-            "sensing_answer",
-            "sensing_keypressed",
-            "sensing_mousedown",
-            "sensing_mousex",
-            "sensing_mousey",
-            "sensing_setdragmode",
-            "sensing_loudness",
-            "sensing_timer",
-            "sensing_resettimer",
-            "sensing_of",
-            "sensing_current",
-            "sensing_dayssince2000",
-            "sensing_username"
-        ],"color":"moderateblue","rgb":"#5cb1d6"}
-        scratch3["operators"] ={"opcodes":  [
-            "operator_add",
-            "operator_subtract",
-            "operator_multiply",
-            "operator_divide",
-            "operator_lt",
-            "operator_equals",
-            "operator_gt",
-            "operator_and",
-            "operator_or",
-            "operator_not",
-            "operator_random",
-            "operator_join",
-            "operator_letter_of",
-            "operator_length",
-            "operator_contains",
-            "operator_mod",
-            "operator_round",
-            "operator_mathop",
-            ],"color":"coolgreen","rgb":"#52b55a"}
-        scratch3["variable"] ={"opcodes":  [
-            "data_variable",
-            "data_setvariableto",
-            "data_changevariableby",
-            "data_showvariable",
-            "data_hidevariable"
-        ],"color":"mango","rgb":"#ff8c1a"}
-        scratch3["list"] ={"opcodes":  [
-            "data_deletealloflist",
-            "data_insertatlist",
-            "data_replaceitemoflist",
-            "data_itemoflist",
-            "data_itemnumoflist",
-            "data_lengthoflist",
-            "data_listcontainsitem",
-            "data_showlist",
-            "data_hidelist"
-        ],"color":"orange","rgb":"#ff4c00"}
-        scratch3["my"] ={"opcodes":  [
-            "procedures_definition",
-            "procedures_call",
-            "argument_reporter_string_number",
-            "argument_reporter_boolean"
-        ],"color":"hotpink","rgb":"#ff4d88"}
-        scratch3["musicextension"] ={"opcodes":  [
-            "music_playDrumForBeats",
-            "music_restForBeats",
-            "music_playNoteForBeats",
-            "music_setInstrument",
-            "music_setTempo",
-            "music_changeTempo",
-            "music_getTempo"
-        ],"color":"limegreen","rgb":"#0fbd8c"}
-        scratch3["penExtension"] ={"opcodes":  [
-            "pen_clear",
-            "pen_stamp",
-            "pen_penDown",
-            "pen_penUp",
-            "pen_setPenColorToColor",
-            "pen_changePenColorParamBy",
-            "pen_setPenColorParamTo",
-            "pen_changePenSizeBy",
-            "pen_setPenSizeTo"
-        ],"color":"limegreen","rgb":"#0fbd8c"}
-        scratch3["videoExtension"] ={"opcodes":  [
-            "videoSensing_whenMotionGreaterThan",
-            "videoSensing_videoOn",
-            "videoSensing_videoToggle",
-            "videoSensing_setVideoTransparency"
-        ],"color":"limegreen","rgb":"#0fbd8c"}
-        scratch3["faceSensingExtension"] ={"opcodes":  [
-            "faceSensing_goToPart",
-            "faceSensing_pointInFaceTiltDirection",
-            "faceSensing_setSizeToFaceSize",
-            "faceSensing_whenTilted",
-            "faceSensing_whenSpriteTouchesPart",
-            "faceSensing_whenFaceDetected",
-            "faceSensing_faceIsDetected",
-            "faceSensing_faceTilt",
-            "faceSensing_faceSize"
-        ],"color":"limegreen","rgb":"#0fbd8c"}
-        scratch3["textToSpeechExtension"] ={"opcodes":  [
-            "text2speech_speakAndWait",
-            "text2speech_setVoice",
-            "text2speech_setLanguage"
-        ],"color":"limegreen","rgb":"#0fbd8c"}
-        scratch3["translateExtension"] ={"opcodes":  [
-            "translate_getTranslate",
-            "translate_getViewerLanguage"
-        ],"color":"limegreen","rgb":"#0fbd8c"}
-        scratch3["makeyMakeyExtension"] ={"opcodes":  [
-            "makeymakey_whenMakeyKeyPressed",
-            "makeymakey_whenCodePressed"
-        ],"color":"limegreen","rgb":"#0fbd8c"}
-        scratch3["microbitExtension"] ={"opcodes":  [
-            "microbit_whenButtonPressed",
-            "microbit_isButtonPressed",
-            "microbit_whenGesture",
-            "microbit_displaySymbol",
-            "microbit_displayText",
-            "microbit_displayClear",
-            "microbit_whenTilted",
-            "microbit_isTilted",
-            "microbit_getTiltAngle",
-            "microbit_whenPinConnected"
-        ],"color":"limegreen","rgb":"#0fbd8c"}
-        scratch3["goDirectForceExtension"] ={"opcodes":  [
-            "gdxfor_whenGesture",
-            "gdxfor_whenForcePushedOrPulled",
-            "gdxfor_getForce",
-            "gdxfor_whenTilted",
-            "gdxfor_isTilted",
-            "gdxfor_getTilt",
-            "gdxfor_isFreeFalling",
-            "gdxfor_getSpinSpeed",
-            "gdxfor_getAcceleration"
-        ],"color":"limegreen","rgb":"#0fbd8c"}
-        scratch3["legoMindstormsEV3Extension"] ={"opcodes":  [
-            "ev3_motorTurnClockwise",
-            "ev3_motorTurnCounterClockwise",
-            "ev3_motorSetPower",
-            "ev3_getMotorPosition",
-            "ev3_whenButtonPressed",
-            "ev3_whenDistanceLessThan",
-            "ev3_whenBrightnessLessThan",
-            "ev3_buttonPressed",
-            "ev3_getDistance",
-            "ev3_getBrightness",
-            "ev3_beep"
-        ],"color":"limegreen","rgb":"#0fbd8c"}
-        scratch3["legoBoostExtension"] ={"opcodes": [
-            "boost_motorOnFor",
-            "boost_motorOnForRotation",
-            "boost_motorOn",
-            "boost_motorOff",
-            "boost_setMotorPower",
-            "boost_setMotorDirection",
-            "boost_getMotorPosition",
-            "boost_whenColor",
-            "boost_seeingColor",
-            "boost_whenTilted",
-            "boost_getTiltAngle",
-            "boost_setLightHue"
-        ],"color":"limegreen","rgb":"#0fbd8c"}
-        scratch3["legoWeDoExtension"] ={"opcodes": [
-            "wedo2_motorOnFor",
-            "wedo2_motorOn",
-            "wedo2_motorOff",
-            "wedo2_startMotorPower",
-            "wedo2_setMotorDirection",
-            "wedo2_setLightHue",
-            "wedo2_whenDistance",
-            "wedo2_whenTilted",
-            "wedo2_getDistance",
-            "wedo2_isTilted",
-            "wedo2_getTiltAngle"
-        ],"color":"limegreen","rgb":"#0fbd8c"}
-
         if isinstance(block, dict):
-            a = block.get('mutation')
-            #if not a == None:
-            #    pprint(a)
-            paramdict={ "opcode" : block['opcode'],
-                        "next" : block['next'],
-                        "parent" : block['parent'],
-                        "inputs" : block['inputs'],
-                        "fields" : block['fields'],
-                        "shadow" : block['shadow'],
-                        "topLevel" : block['topLevel'],
-                        "x" : block.get('x'),
-                        "y" : block.get('y'),
-                        "mutation" : block.get('mutation')
-                        }
-            if block['opcode']=='procedures_prototype':
-                pass
+              paramdict = {
+                  "opcode": block['opcode'].upper(),
+                  "next": block['next'],
+                  "parent": block['parent'],
+                  "inputs": block['inputs'],
+                  "fields": block['fields'],
+                  "shadow": block['shadow'],
+                  "topLevel": block['topLevel'],
+                  "x": block.get('x'),
+                  "y": block.get('y'),
+                  "mutation": block.get('mutation')
+              }
 
-            if block['opcode'] in scratch3["motion"]["opcodes"]:
-                # The motion turnleft/turnright blocks are special because they have a different icon
-                # So the have a specialized class, the other are regular MotionBlock instances
-                blk = None
-                match block['opcode'].upper():
-                    case "MOTION_TURNLEFT":
-                        blk = TurnLeftRightBlock(**paramdict, left=True)
-                    case "MOTION_TURNRIGHT":
-                        blk = TurnLeftRightBlock(**paramdict, left=False)
-                    case _:
-                        blk = MotionBlock(**paramdict)
-                blk.color = scratch3["motion"]["color"]
-                return blk
-            elif block['opcode'] in scratch3["looks"]["opcodes"]:
-                blk = SimpleBlock(**paramdict)
-                blk.color = scratch3["looks"]["color"]
-                return blk
-            elif block['opcode'] in scratch3["operators"]["opcodes"]:
-                blk = OperatorBlock(**paramdict)
-                blk.color=scratch3["operators"]["color"]
-                return blk
-            elif block['opcode'] in scratch3["sound"]["opcodes"]:
-                blk = SimpleBlock(**paramdict)
-                blk.color=scratch3["sound"]["color"]
-                return blk
-            elif block['opcode'] in scratch3["variable"]["opcodes"]:
-                blk = VariableBlock(**paramdict)
-                blk.color=scratch3["variable"]["color"]
-                return blk
-            elif block['opcode'] in scratch3["list"]["opcodes"]:
-                blk = ListBlock(**paramdict)
-                blk.color = scratch3["list"]["color"]
-                return blk
-            elif block['opcode'] in scratch3["penExtension"]["opcodes"]:
-                blk = PenBlock(**paramdict)
-                blk.color = scratch3["penExtension"]["color"]
-                return blk
-            elif block['opcode'] in scratch3["my"]["opcodes"]:
-                blk = MyBlock(**paramdict)
-                blk.color=scratch3["my"]["color"]
-                return blk
-            elif block['opcode'] in scratch3["event"]["opcodes"]:
-                match block['opcode'].upper():
-                    case "event_broadcast":
-                        blk=SimpleBlock(**paramdict)
-                    case "event_broadcastandwait":
-                        blk = SimpleBlock(**paramdict)
-                    case _:
-                        blk = HatBlock(**paramdict)
-                blk.color = scratch3["event"]["color"]
-                return blk
-            elif block['opcode'] in scratch3["control"]["opcodes"]:
-                op=block['opcode'].replace("control_","")
-                blk=None
-                if op in ['repeat','forever','if','repeat_until'] :
-                    blk = SingleMouthBlock(**paramdict)
-                elif op == 'if_else':
-                    blk = DoubleMouthBlock(**paramdict)
-                elif op in ['wait','wait_until','create_clone_of']:
-                    blk = SimpleBlock(**paramdict)
-                elif op == 'start_as_clone':
-                    blk = HatBlock(**paramdict)
-                elif op in ['delete_this_clone','stop']:
-                    #no end blocks for now so use simpleblock
-                    blk = SimpleBlock(**paramdict)
-                else:
-                    raise Exception(f"Unknown control block {op}")
-                blk.color = scratch3["control"]["color"]
-                return blk
-            else:
-                for group in ["sensing","variable",
-                                "list", "my", "musicextension",
-                                "videoExtension", "faceSensingExtension",
-                                "textToSpeechExtension", "translateExtension",
-                                "makeyMakeyExtension", "microbitExtension",
-                                "goDirectForceExtension", "legoMindstormsEV3Extension",
-                                "legoBoostExtension", "legoWeDoExtension"]:
-                    if block['opcode'] in scratch3[group]["opcodes"]:
-                        blk = SimpleBlock(**paramdict)
-                        blk.color = scratch3[group]["color"]
-                        return blk
-                    if block['opcode'].endswith("menu"):
-                        blk = SimpleBlock(**paramdict)
-                        blk.color = scratch3[group]["color"]
-                        return blk
+              opcode = paramdict['opcode']
+              cat_color = OPCODE_TO_CATEGORY.get(opcode)
 
-                #raise Exception(f"unknown opcode to make block from {block['opcode']}")
-                return Block(**paramdict)
+              if cat_color is None:
+                  if opcode.endswith("MENU"):
+                      # Unknown menu shadow block - guess color from prefix
+                      prefix = opcode.split("_")[0]
+                      for cat, info in SCRATCH3.items():
+                          if any(op.startswith(prefix) for op in info["opcodes"]):
+                              blk = SimpleBlock(**paramdict)
+                              blk.color = info["color"]
+                              return blk
+                      blk = SimpleBlock(**paramdict)
+                      blk.color = "white"
+                      return blk
+                  return Block(**paramdict)
+
+              category, color = cat_color
+
+              match category:
+                  case "motion":
+                      match opcode:
+                          case "MOTION_TURNLEFT":
+                              blk = TurnLeftRightBlock(**paramdict, left=True)
+                          case "MOTION_TURNRIGHT":
+                              blk = TurnLeftRightBlock(**paramdict, left=False)
+                          case _:
+                              blk = MotionBlock(**paramdict)
+
+                  case "looks":
+                      blk = LooksBlock(**paramdict)
+
+                  case "operators":
+                      blk = OperatorBlock(**paramdict)
+
+                  case "sensing":
+                      blk = SensingBlock(**paramdict)
+
+                  case "variable":
+                      blk = VariableBlock(**paramdict)
+
+                  case "list":
+                      blk = ListBlock(**paramdict)
+
+                  case "penextension":
+                      blk = PenBlock(**paramdict)
+
+                  case "my":
+                      blk = MyBlock(**paramdict)
+
+                  case "event":
+                      match opcode:
+                          case "EVENT_BROADCAST" | "EVENT_BROADCASTANDWAIT":
+                              blk = SimpleBlock(**paramdict)
+                          case _:
+                              blk = HatBlock(**paramdict)
+
+                  case "control":
+                      op = opcode.replace("CONTROL_", "")
+                      if op in ['REPEAT', 'FOREVER', 'IF', 'REPEAT_UNTIL']:
+                          blk = SingleMouthBlock(**paramdict)
+                      elif op == 'IF_ELSE':
+                          blk = DoubleMouthBlock(**paramdict)
+                      elif op in ['WAIT', 'WAIT_UNTIL', 'CREATE_CLONE_OF']:
+                          blk = SimpleBlock(**paramdict)
+                      elif op == 'START_AS_CLONE':
+                          blk = HatBlock(**paramdict)
+                      elif op in ['DELETE_THIS_CLONE', 'STOP', 'CREATE_CLONE_OF_MENU']:
+                          blk = SimpleBlock(**paramdict)
+                      else:
+                          raise Exception(f"Unknown control block {op}")
+
+                  case _:
+                      blk = SimpleBlock(**paramdict)
+
+              blk.color = color
+              return blk
+
         elif isinstance(block, list):
-            return Block.convert_list_to_block(block)
+              return Block.convert_list_to_block(block)
+
         raise Exception("Unknown block type")
+
+
+
 
 class SimpleBlock(Block):
     pass
@@ -690,65 +438,13 @@ class TurnLeftRightBlock(SimpleBlock):
 class EventBlock(HatBlock):
     pass
 
-class MotionBlock(SimpleBlock):
-    def decodeShadowBlock(self, blocksAST: dict, parentblock ):
-        if self.opcode == "motion_goto_menu" or self.opcode == "motion_glideto_menu":
-            destination = self.fields['TO']
-            if isinstance(destination,list):
-                match destination[0]:
-                    case "_random_":
-                        destination = Translator().translateOpcode("MOTION_GOTO_RANDOM")
-                    case "_mouse_":
-                        destination = Translator().translateOpcode("MOTION_GOTO_POINTER")
-                    case _:
-                        pass # name of sprite to go to
-                return destination
-        sys.exit(1)
 
 
 
 
-class OperatorBlock(SimpleBlock):
-    inputNames = {
-        "operator_add": ["NUM1","NUM2"],
-        "operator_subtract": ["NUM1","NUM2"],
-        "operator_multiply": ["NUM1","NUM2"],
-        "operator_divide": ["NUM1","NUM2"],
-        "operator_lt": ["OPERAND1","OPERAND2"],
-        "operator_equals": ["OPERAND1","OPERAND2"],
-        "operator_gt": ["OPERAND1","OPERAND2"],
-        "operator_and": ["OPERAND1","OPERAND2"],
-        "operator_or": ["OPERAND1","OPERAND2"],
-        "operator_not": ["OPERAND"],
-        "operator_random": ["FROM","TO"],
-        "operator_join": ["STRING1","STRING2"],
-        "operator_letter_of": ["LETTER","STRING"],
-        "operator_length": ["STRING"],
-        "operator_contains": ["STRING1","STRING2"],
-        "operator_mod": ["NUM1","NUM2"],
-        "operator_round": ["NUM"],
-        "operator_mathop": ["OPERATOR", "NUM"]
-    }
-    def decodeShadowBlock(self, blocksAST: dict, parentblock: Block):
-        operator_inputs=[]
-        inp="==None=="
-        for name in self.inputNames[self.opcode]:
-            try:
-                if name in self.inputs:
-                    inp = self.decodeInputFieldArray(self.inputs[name], blocksAST,self)
-                else:
-                    #inp = self.decodeInputFieldArray(self.fields[name], blocksAST)
-                    inp = self.fields[name][0]
-            except KeyError:
-                raise Exception(f"Missing input {name} for operator {self.opcode} : \n"+pformat(self,indent=3,compact=True))
-            #add to list but make sure that we switch back to our own color!!
-            operator_inputs.append(inp + Color.color(self.color))
-        opername = self.opcode.upper().replace("TOR_", "TORS_")
-        val = Translator().translateOpcode(opername)
-        val = replace_placeholders(val, operator_inputs)
-        #now colorize some triangles in front and back
-        val = Color.color(self.color) + "< " + val + Color.color(self.color) + " >"
-        val = Deco.rator("<>",val,self)
-        return val
 
 from penblock import PenBlock
+from motionblock import MotionBlock
+from operatorblock import OperatorBlock
+from looksblock import LooksBlock
+from sensingblock import SensingBlock
