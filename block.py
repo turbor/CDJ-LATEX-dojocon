@@ -1,448 +1,469 @@
 import sys
 from dataclasses import dataclass
-from importlib.metadata import pass_none
-from pprint import pprint,pformat
-from deco import Deco
-import colorize
-from colorize import Color
-from translator import Translator
-from traceback import clear_frames
 from itertools import count
 import re
 import json
-import argparse
 from scratch3 import SCRATCH3, OPCODE_TO_CATEGORY
+from translator import Translator
+from ir import (IR, IRScript, IRBlock, IRCMouth, IRValue,
+                IRDropdown, IRVariable, IRList, IROperator, IRHatBlock,
+                build_ir_script)
 
 
 def replace_placeholders(text, values):
     """
-    Function to replace %digit with corresponding value used to resolve the translation string
-    These strings are used in the l10n files. ex:  "say %1 for %2 seconds"
+    Replace %digit with corresponding value used to resolve the translation string.
+    These strings are used in the l10n files. ex: "say %1 for %2 seconds"
     """
     try:
-        return re.sub(r'%(\d+)', lambda m: str(values[int(m.group(1)) - 1]) , text)
+        return re.sub(r'%(\d+)', lambda m: str(values[int(m.group(1)) - 1]), text)
     except IndexError:
         print("Error: Not enough values for placeholders in translation string")
+        return text
+
 
 def replace_markers(text):
     """
-    Utility for procedure definition strings
-    Replace both %s and %b in order of appearance
+    Utility for procedure definition strings.
+    Replace both %s and %b in order of appearance.
     ex: "dance speed %s rotate %b sing %b" => "dance speed %1 rotate %2 sing %3"
     """
-    c=count(1)   # from itertools!
+    c = count(1)
     return re.sub(r'%[sb]', lambda m: f"%{next(c)}", text)
 
-def replace_namedinput(text:str, inputs:dict):
+
+def replace_namedinput(text: str, inputs: dict):
+    """Replace [NAME] placeholders with values from inputs dict."""
     return re.sub(r'(?<!\x1b)\[([^\]]+)\]', lambda m: str(inputs[m.group(1)]), text)
+
 
 @dataclass(kw_only=True)
 class Block:
     """Block class to store the scratch block information"""
 
     # Following fields are directly related to the blockinfo in the 'project.json' file
-    opcode: str  # English text describing the block
-    next: str  # Next block
-    parent: str  # Parent block
-    inputs: dict  # Input fields but also points to substacks in case of if-then-else blocks
-    fields: dict  # Field values
-    shadow: bool  # Shadow block
-    topLevel: bool  # is this a top level block
-    x: int  # X coordinate
-    y: int  # Y coordinate
-    mutation: dict|None # mutation for MyBlocks
-    # These are extra variable that are used in all subclasses
-    color=""
+    opcode: str          # Opcode identifying the block type
+    next: str            # Next block in chain
+    parent: str          # Parent block
+    inputs: dict         # Input fields, also points to substacks for C-mouth blocks
+    fields: dict         # Field values (dropdowns, static selections)
+    shadow: bool         # True if this is a shadow block
+    topLevel: bool       # True if this block has no parent (start of a script)
+    x: int               # X coordinate on canvas
+    y: int               # Y coordinate on canvas
+    mutation: dict|None  # Extra data for custom blocks (My Blocks)
+    # Category color name, set by factory()
+    color: str = ""
 
+    def to_ir(self, blocksAST: dict) -> IR:
+        """Phase 1: Convert this block to an IR node.
+        Base implementation handles simple blocks (no C-mouth)."""
+        text = self._get_translated_text()
+        inputs_ir = self._decode_inputs_ir(blocksAST)
+        fields_ir = self._decode_fields_ir(blocksAST)
+        # Combine fields and inputs as positional parameters
+        all_params = [*fields_ir, *inputs_ir]
+        # Resolve placeholders in the translated text
+        if all_params:
+            text = replace_placeholders(text, [self._ir_to_placeholder(p) for p in all_params])
+        return IRBlock(opcode=self.opcode, category=self.color,
+                       text=text, inputs=all_params, fields=[])
 
+    def shadow_to_ir(self, blocksAST: dict) -> IR:
+        """Phase 1: Convert this shadow block to an inline IR node.
+        Called when this block appears as an input inside another block."""
+        # Default: try to decode as a menu shadow
+        if self.opcode.endswith("_MENU"):
+            for name, val in self.fields.items():
+                if isinstance(val, list):
+                    return IRDropdown(value=val[0])
+                return IRDropdown(value=str(val))
+        # Fallback: translate the opcode
+        return IRDropdown(value=Translator().translateOpcode(self.opcode))
 
-    def getDescription(self,ident):
-        """
-        Main purpose of this method is to get the translated version
-        of the opcode of this block. No '%1,'%2' replacement
-        or '[inputname]' resolving yet.
-        """
+    def _get_translated_text(self) -> str:
+        """Get the translated description for this block's opcode."""
         name = self.opcode
-        # And for translation purposes there is already a special case...
+        # Special case: IF_ELSE uses the IF translation (else is separate)
         if name == "CONTROL_IF_ELSE":
             name = "CONTROL_IF"
-        if isinstance(self.mutation, dict):
-            if 'proccode' in self.mutation:
-                name = replace_markers(self.mutation['proccode'])
-        return ident + Deco.rator("blok",Translator().translateOpcode(name),self)
+        # Custom blocks use the proccode from mutation
+        if isinstance(self.mutation, dict) and 'proccode' in self.mutation:
+            name = replace_markers(self.mutation['proccode'])
+        return Translator().translateOpcode(name)
 
-    def decodeBlocksInput(self, blocksAST: dict):
-        stack1 = None
-        stack2 = None
+    def _decode_inputs_ir(self, blocksAST: dict) -> list[IR]:
+        """Decode the inputs dict into a list of IR nodes.
+        Skips SUBSTACK/SUBSTACK2 (those are handled by C-mouth blocks)."""
         params = []
         for name, arr in self.inputs.items():
-            if name == 'SUBSTACK':
-                stack1 = arr[1]
-            elif name == 'SUBSTACK2':
-                stack2 = arr[1]
-            else:
-                val = Block.decodeInputFieldArray(arr,blocksAST,self)
-                val = val # + Color.color(block.color)
-                params.append(val)
-        return (stack1, stack2, params)
+            if name in ('SUBSTACK', 'SUBSTACK2'):
+                continue
+            params.append(self._decode_input_array_ir(arr, blocksAST))
+        return params
 
-
-    def decodeBlocksField(self, blocksAST: dict):
-        retfields = []
+    def _decode_fields_ir(self, blocksAST: dict) -> list[IR]:
+        """Decode the fields dict into a list of IR nodes."""
+        result = []
         for name, val in self.fields.items():
             if name == "VARIABLE":
-                #retfields.append(Colorize.color("amber")+f" {val[0]} "+Colorize.color(block.color))
-                retfields.append(Deco.rator("var",val[0],self))
+                result.append(IRVariable(name=val[0]))
             elif name == "LIST":
-                #retfields.append(Colorize.color("orange")+f"| {val[0]} v|"+Colorize.color(block.color))
-                retfields.append(Deco.rator("|v|", val[0], self))
-            elif name == "BROADCAST_OPTION":
-                # retfields.append(Colorize.color("orange")+f"| {val[0]} v|"+Colorize.color(block.color))
-                retfields.append(Deco.rator("|v|", val[0], self))
-            elif name == "STYLE": # rotation style
-                retfields.append(Deco.rator("|v|",val[0],self))
-            elif name == "KEY_OPTION": # keypressed option
-                retfields.append(Deco.rator("|v|", val[0], self))
-            elif name == "EFFECT": # looks_changeeffectby
-                retfields.append(Deco.rator("|v|", val[0], self))
-            elif name == "FRONT_BACK": # looks_gotofrontback
-                retfields.append(Deco.rator("|v|", val[0], self))
-            elif name == "FORWARD_BACKWARD": # looks_goforwardbackwardlayers
-                retfields.append(Deco.rator("|v|", val[0], self))
-            elif name == "BACKDROP": # event_whenbackdropswitchesto
-                retfields.append(Deco.rator("|v|", val[0], self))
+                result.append(IRList(name=val[0]))
+            elif name in ("BROADCAST_OPTION", "STYLE", "KEY_OPTION",
+                          "EFFECT", "FRONT_BACK", "FORWARD_BACKWARD",
+                          "BACKDROP"):
+                result.append(IRDropdown(value=val[0]))
             else:
-                retfields.append("==unknown fieldtype=="+val[0])
-        return retfields
+                result.append(IRDropdown(value=val[0]))
+        return result
 
+    def _decode_input_array_ir(self, arr: list, blocksAST: dict) -> IR:
+        """Decode a single input array entry [shadow_type, value_or_id, ...]."""
+        if arr[0] == 1:
+            # Shadow block present (simple constant or menu)
+            return self._decode_input_value_ir(arr[1], blocksAST)
+        elif arr[0] == 2:
+            # No shadow - actual reporter block plugged in
+            return self._decode_input_value_ir(arr[1], blocksAST)
+        elif arr[0] == 3:
+            # Shadow exists but obscured by reporter - use the reporter
+            return self._decode_input_value_ir(arr[1], blocksAST)
+        return IRValue(value=str(arr), kind="unknown")
 
-    def textDecodeBlock(self, ident: str, blocksAST: dict, args: argparse.Namespace):
-        # First the translated text for this opcode
-        description = self.getDescription(ident)
+    def _decode_input_value_ir(self, val, blocksAST: dict) -> IR:
+        """Decode a single input value - either a block ID (str) or literal array."""
+        if isinstance(val, str):
+            # Block ID - look up the shadow/reporter block
+            shadow = blocksAST[val]
+            return shadow.shadow_to_ir(blocksAST)
+        if isinstance(val, list):
+            # Literal value array [type_id, value, ...]
+            type_id = val[0]
+            value = val[1] if len(val) > 1 else ""
+            if type_id in (4, 5, 6, 7, 8):
+                return IRValue(value=str(value), kind="number")
+            elif type_id == 9:
+                return IRValue(value=str(value), kind="color")
+            elif type_id == 10:
+                return IRValue(value=str(value), kind="string")
+            elif type_id == 11:
+                return IRValue(value=str(value), kind="broadcast")
+            elif type_id == 12:
+                return IRVariable(name=str(value))
+            elif type_id == 13:
+                return IRList(name=str(value))
+            return IRValue(value=str(value), kind="unknown")
+        if val is None:
+            return IRValue(value="", kind="empty")
+        return IRValue(value=str(val), kind="unknown")
 
-        # These are the fields and inputs for this block
-        substack1 = None
-        substack2 = None
-        fields = []
-        inputs = []
-
-        # decode the fields if any are specified
-        if len(self.fields) > 0:
-            fields = self.decodeBlocksField(blocksAST)
-
-        if self.opcode == "LOOKS_CHANGEEFFECTBY":
-            # pass for debug break purposes
-            pass
-        # decode the inputs if any are specified
-        if len(self.inputs) > 0:
-            (substack1, substack2, inputs) = self.decodeBlocksInput(blocksAST)
-        # Quick fix flag clicked translation
-        if self.opcode == "EVENT_WHENFLAGCLICKED":
-            # inputs.insert(0, Translator().translateOpcode("green flag"))
-            inputs.insert(0, "\U0001f3f3\ufe0f\u200d\U0001f7e9")
-            # combine the fields and inputs and update the description with the placeholders
-
-        inputs = [*fields, *inputs]
-        if len(inputs) > 0:
-            description = replace_placeholders(description, inputs)
-
-        # print the final translated description
-        print(description)
-
-        # Check if there is a first C-mouth (while,loop,if-then)
-        newindent = Deco.indent(ident, self)
-        if substack1 is not None:
-            blocksAST[substack1].outputBlocks( newindent, blocksAST, args)
-            # Check if there is a second C-mouth (if-then-else)
-            if substack2 is not None:
-                print(ident + Color.color(self.color) + " " + Translator().translateOpcode(
-                    "CONTROL_ELSE") + " " + Color.reset)
-                blocksAST[substack2].outputBlocks(newindent, blocksAST, args)
-            print(ident + Color.color(self.color) + "_" * 8 + Color.reset)
-
-    def outputBlocks(self, ident: str, blocksAST: dict, args: argparse.Namespace):
-        block = self
-        while block != None:
-            block.textDecodeBlock(ident, blocksAST, args)
-            block = blocksAST[block.next] if block.next != None else None
-
-    @classmethod
-    def decodeInputFieldValue(self, arr, blocksAST: dict, block):
-        if isinstance(arr, str):
-            # this is a shadow block, so the string is the block name
-            shad = blocksAST[arr]
-            return shad.decodeShadowBlock(blocksAST,block) # recursively decode the shadow block
-        if isinstance(arr, list):
-            numid = arr[0]
-            val = arr[1]
-            id = None
-            if len(arr) > 2:
-                id = arr[2]
-            return val
-        return "Block.decodeInputFieldValue() failed"
-
-    @classmethod
-    def decodeInputFieldArray(cls, arr: list, blocksAST: dict, block):
-        val = "(unknown decodeInputFieldArray first element \"" + pformat(arr) + "\")"
-        if arr[0] == 1:  # input is a shadow block aka simple round input with constant in it
-            val = cls.decodeInputFieldValue(arr[1], blocksAST,block)
-            #color these black on white background
-            #val = Colorize.color("white") +f" {val} "
-            val=Deco.rator("()",val,block)
-        elif arr[0] == 2:  # there is no shadow
-            val = cls.decodeInputFieldValue(arr[1], blocksAST,block)
-        elif arr[0] == 3:  # there is a shadow but obscured by the input
-            val = cls.decodeInputFieldValue(arr[1], blocksAST,block)
-        return val
-
-    def decodeShadowBlock(self, blocksAST: dict, parentblock ):
-        if self.opcode == "PROCEDURES_PROTOTYPE":
-            result=self.mutation["proccode"]
-            c=count(0)
-            def replace_param(match):
-                if match.group(0)=="%s":
-                    sub=" ( "+json.loads(self.mutation["argumentnames"])[next(c)] + " ) "
-                elif match.group(0) == "%b":
-                    sub = " ( " + json.loads(self.mutation["argumentnames"])[next(c)] + " ) "
-                else:
-                    sub = " ??" + json.loads(self.mutation["argumentnames"])[next(c)] + "?? "
-                return sub
-
-            return re.sub(r'%[sb]', replace_param, result)
-        simplemenus=['sound_sounds_menu','control_create_clone_of_menu']
-        if self.opcode in simplemenus:
-            for name,val in self.fields.items():
-             return f"| {val[0]} VV|"
-        else:
-          if self.opcode.endswith("_MENU"):
-            retfields = []
-            for name, val in self.fields.items():
-                if name == "VARIABLE":
-                    retfields.append(Color.color("amber") + f" {val[0]} " + Color.color(self.color))
-                elif name == "LIST":
-                    retfields.append(Color.color("orange") + f"| {val[0]} v|" + Color.color(self.color))
-                else:
-                    retfields.append(f"==unknown fieldtype== at {__file__}:{sys._getframe().f_lineno}  {name}:{val}")
-            return ''.join(retfields)
-          else:
-            return "No specific decode for " + Translator().translateOpcode(self.opcode)
+    @staticmethod
+    def _ir_to_placeholder(node: IR) -> str:
+        """Convert an IR node to a placeholder string for text substitution.
+        This is used during IR construction to fill translated text templates."""
+        match node:
+            case IRValue():
+                return node.value
+            case IRDropdown():
+                return node.value
+            case IRVariable():
+                return node.name
+            case IRList():
+                return node.name
+            case IROperator():
+                return node.text
+            case _:
+                return str(node)
 
     @staticmethod
     def convert_list_to_block(block):
-        """ block store as an array instead of a dict.
-        This is for variables,list and direct values like numbers,angles,strings,colors,..."""
-        print(f"convert_list_to_block {block}")
-        opcode="data_variable" # most cases are single value variables
+        """Block stored as an array instead of a dict.
+        This is for variables, lists and direct values like numbers, angles,
+        strings, colors, broadcast messages."""
+        opcode = "DATA_VARIABLE"
         x = None
         y = None
-        if block[0] >3 and block[0] <9:
-            #4=number,5=positive number,6=positive integer,7=integer,8=angle
-            val = block[1]
-            print(f"const:  {val}")
+        if block[0] > 3 and block[0] < 9:
+            # 4=number, 5=positive number, 6=positive integer, 7=integer, 8=angle
+            pass
         elif block[0] == 9:
-            #9=color
-            val = block[1]
-            print(f"color:  {val}")
+            # color
+            pass
         elif block[0] == 10:
-            #string
-            val = block[1]
-            print(f"string:  {val}")
+            # string
+            pass
         elif block[0] == 11:
-            #Broadcast message
-            val = block[1]
-            print(f"broadcast:  {val}")
+            # broadcast message
+            pass
         elif block[0] == 12:
-            #variable
-            val = block[1]
-            id = block[2]
+            # variable
             if len(block) > 3:
                 x = block[3]
                 y = block[4]
-            print(f"variable:  '{val}' id:{id}")
         elif block[0] == 13:
-            opcode="data_listcontents"
-            val = block[1]
-            id = block[2]
-            x = None
-            y = None
+            # list
+            opcode = "DATA_LISTCONTENTS"
             if len(block) > 3:
                 x = block[3]
                 y = block[4]
-            print(f"list:  '{val}' id:{id}")
-        else:
-            print(f"unknown listblock {block}")
+
         return Block(opcode=opcode,
-              next="", #block['next']
-              parent="", #block['parent']
-              inputs={}, #block['inputs'],
-              fields={}, #block['fields'],
-              shadow=False, #block['shadow'],
-              topLevel=False, #block['topLevel'],
-              x=x,
-              y=y,
-              mutation=None)
+                     next=None,
+                     parent=None,
+                     inputs={},
+                     fields={},
+                     shadow=False,
+                     topLevel=False,
+                     x=x,
+                     y=y,
+                     mutation=None)
 
     @staticmethod
     def factory(block: dict):
+        """Factory method: create the appropriate Block subclass based on opcode.
+        Dispatches to specialized classes based on the category and opcode."""
         if isinstance(block, dict):
-              paramdict = {
-                  "opcode": block['opcode'].upper(),
-                  "next": block['next'],
-                  "parent": block['parent'],
-                  "inputs": block['inputs'],
-                  "fields": block['fields'],
-                  "shadow": block['shadow'],
-                  "topLevel": block['topLevel'],
-                  "x": block.get('x'),
-                  "y": block.get('y'),
-                  "mutation": block.get('mutation')
-              }
+            paramdict = {
+                "opcode": block['opcode'].upper(),
+                "next": block['next'],
+                "parent": block['parent'],
+                "inputs": block['inputs'],
+                "fields": block['fields'],
+                "shadow": block['shadow'],
+                "topLevel": block['topLevel'],
+                "x": block.get('x'),
+                "y": block.get('y'),
+                "mutation": block.get('mutation')
+            }
 
-              opcode = paramdict['opcode']
-              cat_color = OPCODE_TO_CATEGORY.get(opcode)
+            opcode = paramdict['opcode']
+            cat_color = OPCODE_TO_CATEGORY.get(opcode)
 
-              if cat_color is None:
-                  if opcode.endswith("MENU"):
-                      # Unknown menu shadow block - guess color from prefix
-                      prefix = opcode.split("_")[0]
-                      for cat, info in SCRATCH3.items():
-                          if any(op.startswith(prefix) for op in info["opcodes"]):
-                              blk = SimpleBlock(**paramdict)
-                              blk.color = info["color"]
-                              return blk
-                      blk = SimpleBlock(**paramdict)
-                      blk.color = "white"
-                      return blk
-                  return Block(**paramdict)
+            if cat_color is None:
+                if opcode.endswith("MENU"):
+                    # Unknown menu shadow block - guess color from prefix
+                    prefix = opcode.split("_")[0]
+                    for cat, info in SCRATCH3.items():
+                        if any(op.startswith(prefix) for op in info["opcodes"]):
+                            blk = SimpleBlock(**paramdict)
+                            blk.color = info["color"]
+                            return blk
+                    blk = SimpleBlock(**paramdict)
+                    blk.color = "white"
+                    return blk
+                return Block(**paramdict)
 
-              category, color = cat_color
+            category, color = cat_color
 
-              match category:
-                  case "motion":
-                      match opcode:
-                          case "MOTION_TURNLEFT":
-                              blk = TurnLeftRightBlock(**paramdict, left=True)
-                          case "MOTION_TURNRIGHT":
-                              blk = TurnLeftRightBlock(**paramdict, left=False)
-                          case _:
-                              blk = MotionBlock(**paramdict)
+            match category:
+                case "motion":
+                    match opcode:
+                        case "MOTION_TURNLEFT":
+                            blk = TurnLeftRightBlock(**paramdict, left=True)
+                        case "MOTION_TURNRIGHT":
+                            blk = TurnLeftRightBlock(**paramdict, left=False)
+                        case _:
+                            blk = MotionBlock(**paramdict)
 
-                  case "looks":
-                      blk = LooksBlock(**paramdict)
+                case "looks":
+                    blk = LooksBlock(**paramdict)
 
-                  case "operators":
-                      blk = OperatorBlock(**paramdict)
+                case "operators":
+                    blk = OperatorBlock(**paramdict)
 
-                  case "sensing":
-                      blk = SensingBlock(**paramdict)
+                case "sensing":
+                    blk = SensingBlock(**paramdict)
 
-                  case "variable":
-                      blk = VariableBlock(**paramdict)
+                case "variable":
+                    blk = VariableBlock(**paramdict)
 
-                  case "list":
-                      blk = ListBlock(**paramdict)
+                case "list":
+                    blk = ListBlock(**paramdict)
 
-                  case "penextension":
-                      blk = PenBlock(**paramdict)
+                case "penExtension":
+                    blk = PenBlock(**paramdict)
 
-                  case "my":
-                      blk = MyBlock(**paramdict)
+                case "my":
+                    blk = MyBlock(**paramdict)
 
-                  case "event":
-                      match opcode:
-                          case "EVENT_BROADCAST" | "EVENT_BROADCASTANDWAIT":
-                              blk = SimpleBlock(**paramdict)
-                          case _:
-                              blk = HatBlock(**paramdict)
+                case "event":
+                    match opcode:
+                        case "EVENT_BROADCAST" | "EVENT_BROADCASTANDWAIT":
+                            blk = SimpleBlock(**paramdict)
+                        case _:
+                            blk = HatBlock(**paramdict)
 
-                  case "control":
-                      op = opcode.replace("CONTROL_", "")
-                      if op in ['REPEAT', 'FOREVER', 'IF', 'REPEAT_UNTIL']:
-                          blk = SingleMouthBlock(**paramdict)
-                      elif op == 'IF_ELSE':
-                          blk = DoubleMouthBlock(**paramdict)
-                      elif op in ['WAIT', 'WAIT_UNTIL', 'CREATE_CLONE_OF']:
-                          blk = SimpleBlock(**paramdict)
-                      elif op == 'START_AS_CLONE':
-                          blk = HatBlock(**paramdict)
-                      elif op in ['DELETE_THIS_CLONE', 'STOP', 'CREATE_CLONE_OF_MENU']:
-                          blk = SimpleBlock(**paramdict)
-                      else:
-                          raise Exception(f"Unknown control block {op}")
+                case "control":
+                    op = opcode.replace("CONTROL_", "")
+                    if op in ['REPEAT', 'FOREVER', 'IF', 'REPEAT_UNTIL']:
+                        blk = SingleMouthBlock(**paramdict)
+                    elif op == 'IF_ELSE':
+                        blk = DoubleMouthBlock(**paramdict)
+                    elif op in ['WAIT', 'WAIT_UNTIL', 'CREATE_CLONE_OF']:
+                        blk = SimpleBlock(**paramdict)
+                    elif op == 'START_AS_CLONE':
+                        blk = HatBlock(**paramdict)
+                    elif op in ['DELETE_THIS_CLONE', 'STOP', 'CREATE_CLONE_OF_MENU']:
+                        blk = SimpleBlock(**paramdict)
+                    else:
+                        raise Exception(f"Unknown control block {op}")
 
-                  case _:
-                      blk = SimpleBlock(**paramdict)
+                case _:
+                    blk = SimpleBlock(**paramdict)
 
-              blk.color = color
-              return blk
+            blk.color = color
+            return blk
 
         elif isinstance(block, list):
-              return Block.convert_list_to_block(block)
+            return Block.convert_list_to_block(block)
 
         raise Exception("Unknown block type")
 
 
-
-
 class SimpleBlock(Block):
+    """A standard block with no C-mouth. Uses base to_ir() as-is."""
     pass
+
 
 class SingleMouthBlock(Block):
-    pass
+    """A block with one C-mouth (repeat, forever, if, repeat_until)."""
+
+    def to_ir(self, blocksAST: dict) -> IR:
+        text = self._get_translated_text()
+        inputs_ir = self._decode_inputs_ir(blocksAST)
+        fields_ir = self._decode_fields_ir(blocksAST)
+        all_params = [*fields_ir, *inputs_ir]
+
+        if all_params:
+            text = replace_placeholders(text, [self._ir_to_placeholder(p) for p in all_params])
+
+        # inputs entries are [shadow_type, value] arrays, so [1] is the block ID.
+        # Default [None, None] prevents IndexError when SUBSTACK is absent (empty body).
+        substack_id = self.inputs.get('SUBSTACK', [None, None])[1]
+        if substack_id is not None:
+            body = build_ir_script(blocksAST[substack_id], blocksAST)
+        else:
+            body = IRScript(blocks=[])
+
+        return IRCMouth(opcode=self.opcode, category=self.color,
+                        text=text, inputs=all_params, body=body)
+
 
 class DoubleMouthBlock(Block):
-    pass
+    """A block with two C-mouths (if-else)."""
 
-class VariableBlock(Block):
-    def decodeShadowBlock(self, blocksAST: dict ,parentblock: Block):
-        pass
+    def to_ir(self, blocksAST: dict) -> IR:
+        text = self._get_translated_text()
+        inputs_ir = self._decode_inputs_ir(blocksAST)
+        fields_ir = self._decode_fields_ir(blocksAST)
+        all_params = [*fields_ir, *inputs_ir]
 
-class ListBlock(Block):
-    def decodeShadowBlock(self, blocksAST: dict ,parentblock: Block):
-        pass
+        if all_params:
+            text = replace_placeholders(text, [self._ir_to_placeholder(p) for p in all_params])
 
-class MyBlock(Block):
-    def decodeShadowBlock(self, blocksAST: dict ,parentblock: Block):
-        val = f"MyBlock decodeShadowBlock {self.opcode}"
-        if self.opcode=="argument_reporter_string_number":
-            val = Color.color(self.color) + self.fields['VALUE'][0]
-        return val
+        # inputs entries are [shadow_type, value] arrays, so [1] is the block ID.
+        # Default [None, None] prevents IndexError when SUBSTACK is absent (empty body).
+        substack1_id = self.inputs.get('SUBSTACK', [None, None])[1]
+        if substack1_id is not None:
+            body = build_ir_script(blocksAST[substack1_id], blocksAST)
+        else:
+            body = IRScript(blocks=[])
 
-    def getDescription(self,ident):
-        desc=super().getDescription(ident)
-        return desc
+        substack2_id = self.inputs.get('SUBSTACK2', [None, None])[1]
+        if substack2_id is not None:
+            else_body = build_ir_script(blocksAST[substack2_id], blocksAST)
+        else:
+            else_body = IRScript(blocks=[])
+
+        return IRCMouth(opcode=self.opcode, category=self.color,
+                        text=text, inputs=all_params,
+                        body=body, else_body=else_body)
 
 
 class HatBlock(Block):
-    pass
+    """A top-level event block (rounded top, no block snaps above it)."""
+
+    def to_ir(self, blocksAST: dict) -> IR:
+        text = self._get_translated_text()
+        inputs_ir = self._decode_inputs_ir(blocksAST)
+        fields_ir = self._decode_fields_ir(blocksAST)
+        all_params = [*fields_ir, *inputs_ir]
+
+        # Special case: flag clicked event uses a green flag emoji as %1
+        if self.opcode == "EVENT_WHENFLAGCLICKED":
+            all_params.insert(0, IRValue(value="\U0001f3f3\ufe0f\u200d\U0001f7e9", kind="symbol"))
+
+        if all_params:
+            text = replace_placeholders(text, [self._ir_to_placeholder(p) for p in all_params])
+
+        return IRHatBlock(opcode=self.opcode, category=self.color,
+                          text=text, inputs=all_params)
+
 
 class TurnLeftRightBlock(SimpleBlock):
-    arrow:str
-    def __init__(self,**kwargs):
-        #extract our custom parameter without breaking the base kwargs
-        left=kwargs.pop('left',True)
-        # the rest is for the base class
+    """Motion turn block - inserts a unicode arrow as first parameter."""
+    arrow: str
+
+    def __init__(self, **kwargs):
+        left = kwargs.pop('left', True)
         super().__init__(**kwargs)
-        #unicde for turn left and right symbol used in description
-        self.arrow = f"\u27F2" if left else f"\u27F3"
-        # maybe use
-        # self.arrow=Translator().translateOpcode("right") if left else Translator().translateOpcode("right")
-        # if no unicode support
+        self.arrow = "\u27F2" if left else "\u27F3"
+
+    def to_ir(self, blocksAST: dict) -> IR:
+        text = self._get_translated_text()
+        inputs_ir = self._decode_inputs_ir(blocksAST)
+        fields_ir = self._decode_fields_ir(blocksAST)
+        # Insert arrow as first parameter, shift others to %2, %3, ...
+        all_params = [IRValue(value=self.arrow, kind="symbol"), *fields_ir, *inputs_ir]
+
+        if all_params:
+            text = replace_placeholders(text, [self._ir_to_placeholder(p) for p in all_params])
+
+        return IRBlock(opcode=self.opcode, category=self.color,
+                       text=text, inputs=all_params, fields=[])
 
 
-    def getDescription(self,ident):
-        desc=super().getDescription(ident)
-        desc=replace_placeholders(desc,[self.arrow,"%1"])
-        return desc
+class VariableBlock(Block):
+    """A variable reporter block."""
 
-class EventBlock(HatBlock):
-    pass
-
-
-
+    def shadow_to_ir(self, blocksAST: dict) -> IR:
+        for name, val in self.fields.items():
+            if name == "VARIABLE":
+                return IRVariable(name=val[0])
+        return IRVariable(name=self.opcode)
 
 
+class ListBlock(Block):
+    """A list reporter block."""
 
+    def shadow_to_ir(self, blocksAST: dict) -> IR:
+        for name, val in self.fields.items():
+            if name == "LIST":
+                return IRList(name=val[0])
+        return IRList(name=self.opcode)
+
+
+class MyBlock(Block):
+    """Custom block (My Blocks) - procedures definition and call."""
+
+    def shadow_to_ir(self, blocksAST: dict) -> IR:
+        """When used as shadow (PROCEDURES_PROTOTYPE), decode the proccode."""
+        if self.opcode == "PROCEDURES_PROTOTYPE":
+            result = self.mutation["proccode"]
+            c = count(0)
+            def replace_param(match):
+                arg_name = json.loads(self.mutation["argumentnames"])[next(c)]
+                return f"( {arg_name} )"
+            return IRDropdown(value=re.sub(r'%[sb]', replace_param, result))
+        # ARGUMENT_REPORTER_STRING_NUMBER / ARGUMENT_REPORTER_BOOLEAN
+        if 'VALUE' in self.fields:
+            return IRValue(value=self.fields['VALUE'][0], kind="argument")
+        return IRDropdown(value=self.opcode)
+
+
+# Subclass imports at the bottom to avoid circular imports.
+# These files define specialized shadow_to_ir() overrides per category.
 from penblock import PenBlock
 from motionblock import MotionBlock
 from operatorblock import OperatorBlock

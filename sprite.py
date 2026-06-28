@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from block import Block
-import argparse
+from ir import build_ir_script, IRScript
 
 @dataclass
 class Sprite:
@@ -18,26 +18,14 @@ class Sprite:
     layerOrder: int
     volume: int
 
-    def dumpBlocks(self, args):
-        """
-        This will output the coding blocks for this sprite.
-         Kind a like the coding tab in the scratch editor window.
+    def build_ir_scripts(self, args) -> list[IRScript]:
+        """Phase 1: Build intermediate representation for all top-level block chains.
 
-         For now it is a random dump of all the coding blocks. We could
-         use the x,y coordinates of the toplevel blocks to sort them
-         efore printing, but for now simply loop over them and print
-         disregarding any visual clues.
-         """
+        Returns a list of IRScript, one per top-level block (each script is
+        a hat block followed by its chain of connected blocks).
+        """
+        scripts = []
         for name, block in self.blocksAST.items():
             if block.topLevel:
-                print()
-                self.outputBlocks(block, "", self.blocksAST, args)
-
-    def outputBlocks(self, block: Block, ident: str, blocksAST: dict, args: argparse.Namespace):
-        """
-        Print a block and all the blocks connected below this block.
-        The ident is used if you need to print blocks included in a C-group
-        """
-        while block != None:
-            block.textDecodeBlock(ident, blocksAST, args)
-            block = blocksAST[block.next] if block.next != None else None
+                scripts.append(build_ir_script(block, self.blocksAST))
+        return scripts

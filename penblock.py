@@ -1,60 +1,44 @@
-from block import SimpleBlock,replace_markers,replace_placeholders,replace_namedinput
-from deco import Deco
+from block import SimpleBlock, replace_namedinput
+from ir import IR, IRBlock, IRValue
 from translator import Translator
-import argparse
 
 
 class PenBlock(SimpleBlock):
+    """Handles pen extension blocks. Overrides to_ir() because pen blocks
+    use dot-notation l10n keys (e.g. "pen.clear") and named input placeholders
+    like [COLOR] instead of positional %1 placeholders."""
 
-    def getDescription(self,ident):
-        opcode2l10n = {
-            "pen_clear": "pen.clear",
-            "pen_stamp": "pen.stamp",
-            "pen_penDown": "pen.penDown",
-            "pen_penUp": "pen.penUp",
-            "pen_setPenColorToColor": "pen.setColor",
-            "pen_changePenColorParamBy": "pen.changeColorParam",
-            "pen_setPenColorParamTo": "pen.setColorParam",
-            "pen_changePenSizeBy": "pen.changeSize",
-            "pen_setPenSizeTo": "pen.setSize",
-            #    "pen.categoryName",
-            #    "pen.changeHue",
-            #    "pen.changeShade",
-            #    "pen.colorMenu.brightness",
-            #    "pen.colorMenu.color",
-            #    "pen.colorMenu.saturation",
-            #    "pen.colorMenu.transparency",
-            #    "pen.setHue",
-            #    "pen.setShade",
-            }
+    # Maps uppercased pen opcodes to their l10n translation keys
+    _opcode_to_l10n = {
+        "PEN_CLEAR": "pen.clear",
+        "PEN_STAMP": "pen.stamp",
+        "PEN_PENDOWN": "pen.penDown",
+        "PEN_PENUP": "pen.penUp",
+        "PEN_SETPENCOLORTOCOLOR": "pen.setColor",
+        "PEN_CHANGEPENCOLORPARAMBY": "pen.changeColorParam",
+        "PEN_SETPENCOLORPARAMTO": "pen.setColorParam",
+        "PEN_CHANGEPENSIZEBY": "pen.changeSize",
+        "PEN_SETPENSIZETO": "pen.setSize",
+    }
 
-        name = opcode2l10n[self.opcode]
-        text = Translator().translateOpcode(name)
-        return ident + Deco.rator("blok", f"\u270e : " + text + " " ,self)
+    def to_ir(self, blocksAST: dict) -> IR:
+        """Pen blocks use named placeholders [COLOR], [SIZE] etc. in their
+        translation strings instead of positional %1, %2."""
+        l10n_key = self._opcode_to_l10n.get(self.opcode, self.opcode)
+        text = Translator().translateOpcode(l10n_key)
 
-    def textDecodeBlock(self, ident: str, blocksAST: dict, args: argparse.Namespace):
-        # First the translated text for this opcode
-        description = self.getDescription(ident)
+        # Pen icon prefix
+        text = "\u270e : " + text
 
-        #pen blocks have no C-mouth, so simply coded
+        # Decode inputs as a name->IR dict for named placeholder replacement
+        inputs_by_name = {}
+        for name, arr in self.inputs.items():
+            inputs_by_name[name] = self._decode_input_array_ir(arr, blocksAST)
 
-        # These are the fields and inputs for this block
-        inputs = {}
+        # Replace [NAME] placeholders with the decoded input values
+        if inputs_by_name:
+            placeholder_strings = {k: self._ir_to_placeholder(v) for k, v in inputs_by_name.items()}
+            text = replace_namedinput(text, placeholder_strings)
 
-        # decode the fields if any are specified
-        if len(self.fields) > 0:
-            print("No fields in pen blocks")
-            sys.exit(1)
-
-        # decode the inputs if any are specified
-        if len(self.inputs) > 0:
-            for name, arr in self.inputs.items():
-                val = self.decodeInputFieldArray(arr,blocksAST,self)
-                inputs[name]=val
-
-        if len(inputs) > 0:
-            description = replace_namedinput(description, inputs)
-
-        # print the final translated description
-        print(description)
-
+        return IRBlock(opcode=self.opcode, category=self.color,
+                       text=text, inputs=list(inputs_by_name.values()), fields=[])

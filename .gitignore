@@ -326,3 +326,6 @@ TSWLatexianTemp*
 #*Notes.bib
 
 *.pdf
+
+# Legacy code reference (not part of the project)
+old_removed_code.py

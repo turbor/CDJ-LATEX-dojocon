@@ -3,19 +3,13 @@ import sys
 import textwrap
 import zipfile
 import json
-from deco import Deco
-from doctest import debug_script
-from logging import exception
-from dataclasses import dataclass
-from textwrap import indent
-import re
-from pprint import pprint
 from block import  Block
-from colorize import Color
 from sprite import Sprite
 from monitor import Monitor
 from translator import Translator
 from dumpAst import dumpAst
+from ir import build_ir_script
+from renderer import PlainRenderer, AnsiRenderer, LatexRenderer
 
 data = {}
 
@@ -27,6 +21,20 @@ def check_python_version():
     if sys.version_info.major < 3 and sys.version_info.minor < 10:
         print("This program requires Python 3.10 or higher")
         sys.exit(1)
+
+
+def get_renderer(format_name: str):
+    """Return the appropriate renderer for the chosen output format."""
+    match format_name:
+        case "plain":
+            return PlainRenderer()
+        case "ansi":
+            return AnsiRenderer()
+        case "latex":
+            return LatexRenderer()
+        case _:
+            raise ValueError(f"Unknown output format: '{format_name}'. Expected 'plain', 'ansi', or 'latex'.")
+
 
 def parse_cli_arguments():
     """
@@ -151,11 +159,12 @@ def create_sprite(target, args):
 def main(args):
     global data
 
-    # To help debugging we can dump the entire json
+    renderer = get_renderer(args.format)
+
+    # To help debugging we can dump the content of the sb3 archive
     if args.verbosity > 0:
         try:
-            Deco.print_underlined(f"files in {args.sb3file}")
-            # Read the json from the sb3 file specified
+            renderer.print_underlined(f"files in {args.sb3file}")
             show_sb3_files(args.sb3file)
         except Exception as e:
             # Something went wrong so quit.
@@ -170,17 +179,17 @@ def main(args):
         print(e)
         sys.exit(1)
 
-    # To help debugging we can dump the entire json
+    # To help debugging we can dump the entire project.json
     if args.verbosity > 2:
             print("\n\n")
-            Deco.print_underlined("Dump of project.json")
+            renderer.print_underlined("Dump of project.json")
             print(json.dumps(data, indent=2))
             print("\n\n")
 
-    # If we did not ask for a specific sprite we print a lot of the extra info present in the json.
+    # If we did not ask for a specific sprite we print the extra info present in the json.
     if not args.sprite:
         # Show the list of extensions used in this projects
-        Deco.print_boxed("Extensions used")
+        renderer.print_boxed("Extensions used")
         if len(data['extensions']) == 0:
             print("No extra extensions used.")
         else:
@@ -189,24 +198,29 @@ def main(args):
         print()
 
         # Show the monitors/variables used in this projects
-        Deco.print_boxed("Monitors")
+        renderer.print_boxed("Monitors")
         for monitor in data['monitors']:
             monitor_object = create_monitor(monitor, args)
             monitor_object.dumpInfo()
 
-        Deco.print_boxed("Targets")
+        renderer.print_boxed("Targets")
 
-    # now print  the codeblocks for the sprites specified on the command line
+    # Now render the codeblocks for the sprites specified on the command line
     # if none specified print all sprites
     for target in data['targets']:
         if not args.sprite or target['name'] in args.sprite:
-            Deco.print_underlined(target['name'])
+            renderer.print_underlined(target['name'])
             sprite_object = create_sprite(target, args)
-            sprite_object.dumpBlocks(args)
+            # Phase 1: build intermediate representation from AST
+            ir_scripts = sprite_object.build_ir_scripts(args)
+            # Phase 2: render IR to chosen output format
+            for ir_script in ir_scripts:
+                print()
+                renderer.render_script(ir_script, depth=0)
 
     # The final metadata in the project
     if not args.sprite:
-        Deco.print_boxed("Metadata")
+        renderer.print_boxed("Metadata")
         for target in data['meta']:
             print(f"{target:>7}: {data['meta'][target]}")
 
@@ -214,8 +228,6 @@ def main(args):
 
 if __name__ == '__main__':
     check_python_version()
-    Color.contrastletters()
     args = parse_cli_arguments()
-    Deco.output=args.format
     Translator().read_translation_files(args)
     main(args)

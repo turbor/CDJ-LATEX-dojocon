@@ -1,48 +1,47 @@
-from multiprocessing.util import sub_warning
-
-from block import SimpleBlock,replace_markers,replace_placeholders,replace_namedinput
-from deco import Deco
+from block import SimpleBlock
+from ir import IR, IRDropdown
 from translator import Translator
-import argparse
+
 
 class LooksBlock(SimpleBlock):
-    def decodeShadowBlock(self, blocksAST: dict, parentblock ):
-            keyname={
-                "LOOKS_BACKDROPS": 'BACKDROP',
-                "LOOKS_COSTUME": 'COSTUME',
-            }
-            if self.opcode in keyname:
-                destination = self.fields[ keyname[self.opcode] ]
-            else:
-                raise Exception(f"{__file__}:{sys._getframe().f_lineno}  Unknown shadow block {self.opcode}")
-            if isinstance(destination,list):
-                #match destination[0]:
-                #    case "_random_":
-                #        destination = Translator().translateOpcode("MOTION_GOTO_RANDOM")
-                #    case "_mouse_":
-                #        destination = Translator().translateOpcode("MOTION_GOTO_POINTER")
-                #    case _:
-                destination = destination[0] # name of sprite to go to
-                return destination
+    """Handles looks blocks. Overrides shadow_to_ir() for costume/backdrop
+    menu shadows and _decode_fields_ir() for effect/layer dropdowns that
+    need translation via constructed l10n keys."""
 
-    def decodeBlocksField(self, blocksAST: dict):
-        retfields = []
+    # Maps menu opcodes to the field key holding the selection
+    _menu_field_keys = {
+        "LOOKS_BACKDROPS": "BACKDROP",
+        "LOOKS_COSTUME": "COSTUME",
+    }
+
+    def shadow_to_ir(self, blocksAST: dict) -> IR:
+        """Decode costume/backdrop menu shadows."""
+        if self.opcode in self._menu_field_keys:
+            field_key = self._menu_field_keys[self.opcode]
+            destination = self.fields[field_key]
+            if isinstance(destination, list):
+                return IRDropdown(value=destination[0])
+            return IRDropdown(value=str(destination))
+        return super().shadow_to_ir(blocksAST)
+
+    def _decode_fields_ir(self, blocksAST: dict) -> list[IR]:
+        """Override field decoding to translate effect/layer dropdown values.
+        Constructs translation keys like LOOKS_EFFECT_COLOR, LOOKS_GOTOFRONTBACK_FRONT, etc."""
+        result = []
         for name, val in self.fields.items():
             match name:
-                case "FRONT_BACK": # looks_gotofrontback LOOKS_GOTOFRONTBACK_
-                    effectname = val[0].upper()
-                    effectname = Translator().translateOpcode(f"LOOKS_GOTOFRONTBACK_{effectname}")
-                    retfields.append(Deco.rator("|v|", effectname, self))
-                case "FORWARD_BACKWARD": # looks_goforwardbackwardlayers
-                    effectname = val[0].upper()
-                    effectname = Translator().translateOpcode(f"LOOKS_GOFORWARDBACKWARDLAYERS_{effectname}")
-                    retfields.append(Deco.rator("|v|", effectname, self))
-                case "EFFECT": # looks_seteffectto
-                    effectname=val[0].upper()
-                    effectname=Translator().translateOpcode(f"LOOKS_EFFECT_{effectname}")
-                    retfields.append(Deco.rator("|v|", effectname, self))
+                case "FRONT_BACK":
+                    # e.g. "front" -> LOOKS_GOTOFRONTBACK_FRONT
+                    key = f"LOOKS_GOTOFRONTBACK_{val[0].upper()}"
+                    result.append(IRDropdown(value=Translator().translateOpcode(key)))
+                case "FORWARD_BACKWARD":
+                    # e.g. "forward" -> LOOKS_GOFORWARDBACKWARDLAYERS_FORWARD
+                    key = f"LOOKS_GOFORWARDBACKWARDLAYERS_{val[0].upper()}"
+                    result.append(IRDropdown(value=Translator().translateOpcode(key)))
+                case "EFFECT":
+                    # e.g. "color" -> LOOKS_EFFECT_COLOR
+                    key = f"LOOKS_EFFECT_{val[0].upper()}"
+                    result.append(IRDropdown(value=Translator().translateOpcode(key)))
                 case _:
-                    retfields.append("==unknown fieldtype=="+val[0])
-        return retfields
-
-
+                    result.append(IRDropdown(value=val[0]))
+        return result
