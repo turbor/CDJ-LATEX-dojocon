@@ -416,6 +416,13 @@ class ListBlock(Block):
     List blocks have their LIST field as the LAST placeholder (%2, %3)
     while inputs (INDEX, ITEM) come first."""
 
+    # Special list index values that need translation
+    _index_special = {
+        "all": "DATA_INDEX_ALL",
+        "last": "DATA_INDEX_LAST",
+        "random": "DATA_INDEX_RANDOM",
+    }
+
     def _decode_fields_ir(self, blocksAST: dict) -> list[IR]:
         """LIST field becomes IRList, other fields pass through."""
         result = []
@@ -425,6 +432,20 @@ class ListBlock(Block):
             else:
                 result.append(IRDropdown(value=val[0]))
         return result
+
+    def _decode_inputs_ir(self, blocksAST: dict) -> list[IR]:
+        """Override to translate special index values (all, last, random)."""
+        params = []
+        for name, arr in self.inputs.items():
+            if name in ('SUBSTACK', 'SUBSTACK2'):
+                continue
+            node = self._decode_input_array_ir(arr, blocksAST)
+            # Translate special index strings
+            if isinstance(node, IRValue) and node.kind == "string" and node.value in self._index_special:
+                key = self._index_special[node.value]
+                node = IRDropdown(value=Translator().translateOpcode(key))
+            params.append(node)
+        return params
 
     def to_ir(self, blocksAST: dict) -> IR:
         """Override to put inputs BEFORE fields - list blocks use
