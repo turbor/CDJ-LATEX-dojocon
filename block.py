@@ -252,6 +252,9 @@ class Block:
                 case "looks":
                     blk = LooksBlock(**paramdict)
 
+                case "sound":
+                    blk = SoundBlock(**paramdict)
+
                 case "operators":
                     blk = OperatorBlock(**paramdict)
 
@@ -473,3 +476,4 @@ from motionblock import MotionBlock
 from operatorblock import OperatorBlock
 from looksblock import LooksBlock
 from sensingblock import SensingBlock
+from soundblock import SoundBlock
