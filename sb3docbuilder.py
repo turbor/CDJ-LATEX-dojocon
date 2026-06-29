@@ -9,7 +9,7 @@ from monitor import Monitor
 from translator import Translator
 from dumpAst import dumpAst
 from ir import build_ir_script
-from renderer import PlainRenderer, AnsiRenderer, LatexRenderer
+from renderer import PlainRenderer, AnsiRenderer, LatexRenderer, NerdFontRenderer
 
 data = {}
 
@@ -30,10 +30,12 @@ def get_renderer(format_name: str):
             return PlainRenderer()
         case "ansi":
             return AnsiRenderer()
+        case "nerdfont":
+            return NerdFontRenderer()
         case "latex":
             return LatexRenderer()
         case _:
-            raise ValueError(f"Unknown output format: '{format_name}'. Expected 'plain', 'ansi', or 'latex'.")
+            raise ValueError(f"Unknown output format: '{format_name}'. Expected 'plain', 'ansi', 'nerdfont', or 'latex'.")
 
 
 def parse_cli_arguments():
@@ -61,7 +63,7 @@ def parse_cli_arguments():
                         # 2 = +dump AST building per sprite
                         # 3 = +dump project.json
 
-    parser.add_argument("-f", "--format", choices=["plain", "ansi", "latex"],
+    parser.add_argument("-f", "--format", choices=["plain", "ansi", "nerdfont", "latex"],
                         default="ansi",
                         help="Outputformat to use")
     parser.add_argument("-l", "--language", default="en",
