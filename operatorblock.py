@@ -1,5 +1,5 @@
 from block import SimpleBlock
-from ir import IR, IROperator, IRValue
+from ir import IR, IROperator, IRValue, IRDropdown
 from translator import Translator
 
 
@@ -40,8 +40,13 @@ class OperatorBlock(SimpleBlock):
             if name in self.inputs:
                 operands.append(self._decode_input_array_ir(self.inputs[name], blocksAST))
             elif name in self.fields:
-                # Some operators (MATHOP) have a field instead of input for the function name
-                operands.append(IRValue(value=self.fields[name][0], kind="string"))
+                # MATHOP has a field for the function name - translate it
+                raw_value = self.fields[name][0]
+                if self.opcode == "OPERATOR_MATHOP":
+                    key = f"OPERATORS_MATHOP_{raw_value.upper()}"
+                    operands.append(IRDropdown(value=Translator().translateOpcode(key)))
+                else:
+                    operands.append(IRValue(value=raw_value, kind="string"))
             else:
                 operands.append(IRValue(value="?", kind="unknown"))
 
