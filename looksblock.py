@@ -14,13 +14,24 @@ class LooksBlock(SimpleBlock):
         "LOOKS_COSTUME": "COSTUME",
     }
 
+    # Special backdrop values that need translation
+    _backdrop_special = {
+        "next backdrop": "LOOKS_NEXTBACKDROP_BLOCK",
+        "previous backdrop": "LOOKS_PREVIOUSBACKDROP",
+        "random backdrop": "LOOKS_RANDOMBACKDROP",
+    }
+
     def shadow_to_ir(self, blocksAST: dict) -> IR:
         """Decode costume/backdrop menu shadows and numbername reporters."""
         if self.opcode in self._menu_field_keys:
             field_key = self._menu_field_keys[self.opcode]
             destination = self.fields[field_key]
             if isinstance(destination, list):
-                return IRDropdown(value=destination[0])
+                raw = destination[0]
+                # Translate special backdrop values
+                if self.opcode == "LOOKS_BACKDROPS" and raw in self._backdrop_special:
+                    return IRDropdown(value=Translator().translateOpcode(self._backdrop_special[raw]))
+                return IRDropdown(value=raw)
             return IRDropdown(value=str(destination))
 
         # "costume number/name" and "backdrop number/name" reporters
