@@ -103,7 +103,9 @@ SCRATCH3 = {"motion": {"opcodes": [
             "SENSING_OF",
             "SENSING_CURRENT",
             "SENSING_DAYSSINCE2000",
-            "SENSING_USERNAME"
+            "SENSING_USERNAME",
+            "SENSING_TOUCHINGOBJECTMENU",
+            "SENSING_KEYOPTIONS"
         ],"color":"moderateblue","rgb":"#5cb1d6"},
         "operators": {"opcodes":  [
             "OPERATOR_ADD",
@@ -147,6 +149,7 @@ SCRATCH3 = {"motion": {"opcodes": [
         "my": {"opcodes":  [
             "PROCEDURES_DEFINITION",
             "PROCEDURES_CALL",
+            "PROCEDURES_PROTOTYPE",
             "ARGUMENT_REPORTER_STRING_NUMBER",
             "ARGUMENT_REPORTER_BOOLEAN"
         ],"color":"hotpink","rgb":"#ff4d88"},

@@ -27,6 +27,9 @@ def replace_markers(text):
     Utility for procedure definition strings.
     Replace both %s and %b in order of appearance.
     ex: "dance speed %s rotate %b sing %b" => "dance speed %1 rotate %2 sing %3"
+
+    Scratch 3 only uses %s (string/number) and %b (boolean) in proccodes.
+    Scratch 2 had %n for numbers, but that was merged into %s in Scratch 3.
     """
     c = count(1)
     return re.sub(r'%[sb]', lambda m: f"%{next(c)}", text)
@@ -446,6 +449,39 @@ class MyBlock(Block):
         if 'VALUE' in self.fields:
             return IRValue(value=self.fields['VALUE'][0], kind="argument")
         return IRDropdown(value=self.opcode)
+
+    def to_ir(self, blocksAST: dict) -> IR:
+        """PROCEDURES_DEFINITION uses the 'define %1' translation.
+        PROCEDURES_CALL uses the proccode with %s/%b markers converted to
+        positional placeholders and arguments decoded in argumentids order."""
+        text = self._get_translated_text()
+        inputs_ir = self._decode_inputs_ir(blocksAST)
+        fields_ir = self._decode_fields_ir(blocksAST)
+        all_params = [*fields_ir, *inputs_ir]
+
+        # PROCEDURES_DEFINITION is a hat block (rounded top)
+        if self.opcode == "PROCEDURES_DEFINITION":
+            return IRHatBlock(opcode=self.opcode, category=self.color,
+                              text=text, inputs=all_params)
+
+        # PROCEDURES_CALL: proccode contains %s (string/number) and %b (boolean)
+        # markers which we convert to %1, %2, ... for the renderer to fill in.
+        if self.opcode == "PROCEDURES_CALL" and self.mutation:
+            proccode = self.mutation["proccode"]
+            arg_ids = json.loads(self.mutation["argumentids"])
+            # Decode each argument input in the order specified by argumentids
+            ordered_inputs = []
+            for aid in arg_ids:
+                if aid in self.inputs:
+                    ordered_inputs.append(self._decode_input_array_ir(self.inputs[aid], blocksAST))
+                else:
+                    ordered_inputs.append(IRValue(value="?", kind="unknown"))
+            text = replace_markers(proccode)
+            return IRBlock(opcode=self.opcode, category=self.color,
+                           text=text, inputs=ordered_inputs, fields=[])
+
+        return IRBlock(opcode=self.opcode, category=self.color,
+                       text=text, inputs=all_params, fields=[])
 
 
 # Subclass imports at the bottom to avoid circular imports.
