@@ -69,7 +69,8 @@ SCRATCH3 = {"motion": {"opcodes": [
             "EVENT_WHENGREATERTHAN",
             "EVENT_WHENBROADCASTRECEIVED",
             "EVENT_BROADCAST",
-            "EVENT_BROADCASTANDWAIT"
+            "EVENT_BROADCASTANDWAIT",
+            "EVENT_WHENTOUCHINGOBJECT"
         ],"color":"amber","rgb":"#ffbf00"},
         "control": {"opcodes":  [
             "CONTROL_WAIT",
