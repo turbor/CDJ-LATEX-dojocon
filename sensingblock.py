@@ -122,6 +122,22 @@ class SensingBlock(SimpleBlock):
             return IROperator(opcode=self.opcode, category=self.color,
                               text=text, operands=operands)
 
+        if self.opcode == "SENSING_OF":
+            # "%1 of %2" where %1 is property name, %2 is sprite/stage
+            text = Translator().translateOpcode(self.opcode)
+            operands = []
+            # %1: property field - translate via SENSING_OF_{PROPERTY}
+            prop = self.fields.get("PROPERTY", [None])[0]
+            if prop:
+                key = f"SENSING_OF_{prop.upper()}"
+                operands.append(IRDropdown(value=Translator().translateOpcode(key)))
+            # %2: object menu input
+            obj_input = self.inputs.get("OBJECT")
+            if obj_input:
+                operands.append(self._decode_input_value_ir(obj_input[1], blocksAST))
+            return IROperator(opcode=self.opcode, category=self.color,
+                              text=text, operands=operands)
+
         # Generic sensing reporters (answer, mouse x, timer, etc.)
         return IRDropdown(value=Translator().translateOpcode(self.opcode))
 

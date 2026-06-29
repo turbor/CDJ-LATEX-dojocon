@@ -1,12 +1,12 @@
 from block import SimpleBlock
-from ir import IR, IRDropdown
+from ir import IR, IRDropdown, IROperator
 from translator import Translator
 
 
 class LooksBlock(SimpleBlock):
     """Handles looks blocks. Overrides shadow_to_ir() for costume/backdrop
-    menu shadows and _decode_fields_ir() for effect/layer dropdowns that
-    need translation via constructed l10n keys."""
+    menu shadows and _decode_fields_ir() for effect/layer/numbername dropdowns
+    that need translation via constructed l10n keys."""
 
     # Maps menu opcodes to the field key holding the selection
     _menu_field_keys = {
@@ -15,13 +15,25 @@ class LooksBlock(SimpleBlock):
     }
 
     def shadow_to_ir(self, blocksAST: dict) -> IR:
-        """Decode costume/backdrop menu shadows."""
+        """Decode costume/backdrop menu shadows and numbername reporters."""
         if self.opcode in self._menu_field_keys:
             field_key = self._menu_field_keys[self.opcode]
             destination = self.fields[field_key]
             if isinstance(destination, list):
                 return IRDropdown(value=destination[0])
             return IRDropdown(value=str(destination))
+
+        # "costume number/name" and "backdrop number/name" reporters
+        if self.opcode in ("LOOKS_COSTUMENUMBERNAME", "LOOKS_BACKDROPNUMBERNAME"):
+            text = Translator().translateOpcode(self.opcode)
+            operands = []
+            nn = self.fields.get("NUMBER_NAME", [None])[0]
+            if nn:
+                key = f"LOOKS_NUMBERNAME_{nn.upper()}"
+                operands.append(IRDropdown(value=Translator().translateOpcode(key)))
+            return IROperator(opcode=self.opcode, category=self.color,
+                              text=text, operands=operands)
+
         return super().shadow_to_ir(blocksAST)
 
     def _decode_fields_ir(self, blocksAST: dict) -> list[IR]:
@@ -41,6 +53,10 @@ class LooksBlock(SimpleBlock):
                 case "EFFECT":
                     # e.g. "color" -> LOOKS_EFFECT_COLOR
                     key = f"LOOKS_EFFECT_{val[0].upper()}"
+                    result.append(IRDropdown(value=Translator().translateOpcode(key)))
+                case "NUMBER_NAME":
+                    # e.g. "number" -> LOOKS_NUMBERNAME_NUMBER
+                    key = f"LOOKS_NUMBERNAME_{val[0].upper()}"
                     result.append(IRDropdown(value=Translator().translateOpcode(key)))
                 case _:
                     result.append(IRDropdown(value=val[0]))
