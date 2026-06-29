@@ -16,6 +16,11 @@ class SensingBlock(SimpleBlock):
         "_edge_": "SENSING_TOUCHINGOBJECT_EDGE",
     }
 
+    # Internal values in the distance-to menu
+    _distanceto_special = {
+        "_mouse_": "SENSING_DISTANCETO_POINTER",
+    }
+
     # Internal key names that need translation.
     # Scratch reuses EVENT_WHENKEYPRESSED_* l10n keys for the key options dropdown.
     _key_special = {
@@ -35,6 +40,12 @@ class SensingBlock(SimpleBlock):
             val = self.fields.get("TOUCHINGOBJECTMENU", [None])[0]
             if val:
                 return self._translate_touching_value(IRDropdown(value=val))
+            return IRDropdown(value="?")
+
+        if self.opcode == "SENSING_DISTANCETOMENU":
+            val = self.fields.get("DISTANCETOMENU", [None])[0]
+            if val:
+                return self._translate_distanceto_value(IRDropdown(value=val))
             return IRDropdown(value="?")
 
         if self.opcode == "SENSING_KEYOPTIONS":
@@ -60,6 +71,19 @@ class SensingBlock(SimpleBlock):
             text = Translator().translateOpcode(self.opcode)
             return IROperator(opcode=self.opcode, category=self.color,
                               text=text, operands=self._decode_inputs_ir(blocksAST))
+
+        if self.opcode == "SENSING_DISTANCETO":
+            # "distance to %1" with a distance-to menu as parameter
+            text = Translator().translateOpcode(self.opcode)
+            item = self.inputs.get("DISTANCETOMENU")
+            operands = []
+            if item is not None:
+                resolved = self._decode_input_value_ir(item[1], blocksAST)
+                if isinstance(resolved, IRDropdown):
+                    resolved = self._translate_distanceto_value(resolved)
+                operands.append(resolved)
+            return IROperator(opcode=self.opcode, category=self.color,
+                              text=text, operands=operands)
 
         if self.opcode == "SENSING_COLORISTOUCHINGCOLOR":
             text = Translator().translateOpcode(self.opcode)
@@ -87,6 +111,13 @@ class SensingBlock(SimpleBlock):
     def _translate_touching_value(self, dropdown: IRDropdown) -> IRDropdown:
         """Translate internal touching menu values to human-readable text."""
         key = self._touching_special.get(dropdown.value)
+        if key:
+            return IRDropdown(value=Translator().translateOpcode(key))
+        return dropdown
+
+    def _translate_distanceto_value(self, dropdown: IRDropdown) -> IRDropdown:
+        """Translate internal distance-to menu values to human-readable text."""
+        key = self._distanceto_special.get(dropdown.value)
         if key:
             return IRDropdown(value=Translator().translateOpcode(key))
         return dropdown

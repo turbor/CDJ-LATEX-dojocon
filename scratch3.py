@@ -105,6 +105,7 @@ SCRATCH3 = {"motion": {"opcodes": [
             "SENSING_DAYSSINCE2000",
             "SENSING_USERNAME",
             "SENSING_TOUCHINGOBJECTMENU",
+            "SENSING_DISTANCETOMENU",
             "SENSING_KEYOPTIONS"
         ],"color":"moderateblue","rgb":"#5cb1d6"},
         "operators": {"opcodes":  [
