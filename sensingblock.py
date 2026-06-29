@@ -32,6 +32,23 @@ class SensingBlock(SimpleBlock):
         "any": "EVENT_WHENKEYPRESSED_ANY",
     }
 
+    # Maps raw field values to l10n keys for DRAG_MODE
+    _dragmode_keys = {
+        "draggable": "SENSING_SETDRAGMODE_DRAGGABLE",
+        "not draggable": "SENSING_SETDRAGMODE_NOTDRAGGABLE",
+    }
+
+    def _decode_fields_ir(self, blocksAST: dict) -> list[IR]:
+        """Override to translate DRAG_MODE field values."""
+        result = []
+        for name, val in self.fields.items():
+            if name == "DRAG_MODE":
+                key = self._dragmode_keys.get(val[0], val[0])
+                result.append(IRDropdown(value=Translator().translateOpcode(key)))
+            else:
+                result.append(IRDropdown(value=val[0]))
+        return result
+
     def shadow_to_ir(self, blocksAST: dict) -> IR:
         """Decode sensing block when used as an inline reporter or menu shadow."""
 
