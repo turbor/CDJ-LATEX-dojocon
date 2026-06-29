@@ -6,7 +6,8 @@ from translator import Translator
 class MotionBlock(SimpleBlock):
     """Handles motion blocks. Overrides shadow_to_ir() for menu shadow blocks
     like goto_menu, glideto_menu, pointtowards_menu which contain destination
-    choices (_random_, _mouse_, or a sprite name)."""
+    choices (_random_, _mouse_, or a sprite name).
+    Overrides _decode_fields_ir() to translate rotation style values."""
 
     # Maps menu opcodes to the field key that holds the destination value
     _menu_field_keys = {
@@ -20,6 +21,24 @@ class MotionBlock(SimpleBlock):
         "_random_": "MOTION_GOTO_RANDOM",
         "_mouse_": "MOTION_GOTO_POINTER",
     }
+
+    # Maps raw rotation style values to l10n keys
+    _rotation_style_keys = {
+        "left-right": "MOTION_SETROTATIONSTYLE_LEFTRIGHT",
+        "don't rotate": "MOTION_SETROTATIONSTYLE_DONTROTATE",
+        "all around": "MOTION_SETROTATIONSTYLE_ALLAROUND",
+    }
+
+    def _decode_fields_ir(self, blocksAST: dict) -> list[IR]:
+        """Translate rotation style field values."""
+        result = []
+        for name, val in self.fields.items():
+            if name == "STYLE":
+                key = self._rotation_style_keys.get(val[0], val[0])
+                result.append(IRDropdown(value=Translator().translateOpcode(key)))
+            else:
+                result.append(IRDropdown(value=val[0]))
+        return result
 
     def shadow_to_ir(self, blocksAST: dict) -> IR:
         # Menu shadow blocks (dropdown with destination choices)

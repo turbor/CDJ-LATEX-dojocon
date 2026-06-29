@@ -277,6 +277,8 @@ class Block:
                     match opcode:
                         case "EVENT_BROADCAST" | "EVENT_BROADCASTANDWAIT":
                             blk = SimpleBlock(**paramdict)
+                        case "EVENT_WHENKEYPRESSED":
+                            blk = EventBlock(**paramdict)
                         case _:
                             blk = HatBlock(**paramdict)
 
@@ -291,7 +293,7 @@ class Block:
                     elif op == 'START_AS_CLONE':
                         blk = HatBlock(**paramdict)
                     elif op in ['DELETE_THIS_CLONE', 'STOP', 'CREATE_CLONE_OF_MENU']:
-                        blk = SimpleBlock(**paramdict)
+                        blk = ControlBlock(**paramdict)
                     else:
                         raise Exception(f"Unknown control block {op}")
 
@@ -477,3 +479,5 @@ from operatorblock import OperatorBlock
 from looksblock import LooksBlock
 from sensingblock import SensingBlock
 from soundblock import SoundBlock
+from controlblock import ControlBlock
+from eventblock import EventBlock
