@@ -137,6 +137,8 @@ SCRATCH3 = {"motion": {"opcodes": [
         ],"color":"mango","rgb":"#ff8c1a"},
 
         "list": {"opcodes":  [
+            "DATA_ADDTOLIST",
+            "DATA_DELETEOFLIST",
             "DATA_DELETEALLOFLIST",
             "DATA_INSERTATLIST",
             "DATA_REPLACEITEMOFLIST",

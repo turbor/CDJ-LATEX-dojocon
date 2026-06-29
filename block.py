@@ -411,9 +411,48 @@ class VariableBlock(Block):
 
 
 class ListBlock(Block):
-    """A list reporter block."""
+    """A list block. Handles list reporter blocks when used as shadows,
+    and translates the LIST field to IRList for proper rendering.
+    List blocks have their LIST field as the LAST placeholder (%2, %3)
+    while inputs (INDEX, ITEM) come first."""
+
+    def _decode_fields_ir(self, blocksAST: dict) -> list[IR]:
+        """LIST field becomes IRList, other fields pass through."""
+        result = []
+        for name, val in self.fields.items():
+            if name == "LIST":
+                result.append(IRList(name=val[0]))
+            else:
+                result.append(IRDropdown(value=val[0]))
+        return result
+
+    def to_ir(self, blocksAST: dict) -> IR:
+        """Override to put inputs BEFORE fields - list blocks use
+        'verb %1 of %2' where %1 is the input and %2 is the LIST field."""
+        text = self._get_translated_text()
+        inputs_ir = self._decode_inputs_ir(blocksAST)
+        fields_ir = self._decode_fields_ir(blocksAST)
+        # Inputs first, then fields (LIST name comes last in translation)
+        all_params = [*inputs_ir, *fields_ir]
+        return IRBlock(opcode=self.opcode, category=self.color,
+                       text=text, inputs=all_params, fields=[])
 
     def shadow_to_ir(self, blocksAST: dict) -> IR:
+        """When used as a reporter in another block's input (e.g. length of list,
+        item of list), produce an IROperator with the translated template."""
+        reporter_opcodes = (
+            "DATA_ITEMOFLIST", "DATA_LENGTHOFLIST",
+            "DATA_ITEMNUMOFLIST", "DATA_LISTCONTAINSITEM",
+        )
+        if self.opcode in reporter_opcodes:
+            text = Translator().translateOpcode(self.opcode)
+            inputs_ir = self._decode_inputs_ir(blocksAST)
+            fields_ir = self._decode_fields_ir(blocksAST)
+            # Inputs first, then fields (LIST name comes last)
+            operands = [*inputs_ir, *fields_ir]
+            return IROperator(opcode=self.opcode, category=self.color,
+                              text=text, operands=operands)
+        # Plain list reference (variable-style reporter)
         for name, val in self.fields.items():
             if name == "LIST":
                 return IRList(name=val[0])
