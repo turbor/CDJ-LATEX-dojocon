@@ -57,15 +57,13 @@ class Block:
 
     def to_ir(self, blocksAST: dict) -> IR:
         """Phase 1: Convert this block to an IR node.
-        Base implementation handles simple blocks (no C-mouth)."""
+        Base implementation handles simple blocks (no C-mouth).
+        Text keeps %1, %2 placeholders - the renderer resolves them in Phase 2."""
         text = self._get_translated_text()
         inputs_ir = self._decode_inputs_ir(blocksAST)
         fields_ir = self._decode_fields_ir(blocksAST)
         # Combine fields and inputs as positional parameters
         all_params = [*fields_ir, *inputs_ir]
-        # Resolve placeholders in the translated text
-        if all_params:
-            text = replace_placeholders(text, [self._ir_to_placeholder(p) for p in all_params])
         return IRBlock(opcode=self.opcode, category=self.color,
                        text=text, inputs=all_params, fields=[])
 
@@ -335,9 +333,6 @@ class SingleMouthBlock(Block):
         fields_ir = self._decode_fields_ir(blocksAST)
         all_params = [*fields_ir, *inputs_ir]
 
-        if all_params:
-            text = replace_placeholders(text, [self._ir_to_placeholder(p) for p in all_params])
-
         # inputs entries are [shadow_type, value] arrays, so [1] is the block ID.
         # Default [None, None] prevents IndexError when SUBSTACK is absent (empty body).
         substack_id = self.inputs.get('SUBSTACK', [None, None])[1]
@@ -358,9 +353,6 @@ class DoubleMouthBlock(Block):
         inputs_ir = self._decode_inputs_ir(blocksAST)
         fields_ir = self._decode_fields_ir(blocksAST)
         all_params = [*fields_ir, *inputs_ir]
-
-        if all_params:
-            text = replace_placeholders(text, [self._ir_to_placeholder(p) for p in all_params])
 
         # inputs entries are [shadow_type, value] arrays, so [1] is the block ID.
         # Default [None, None] prevents IndexError when SUBSTACK is absent (empty body).
@@ -394,9 +386,6 @@ class HatBlock(Block):
         if self.opcode == "EVENT_WHENFLAGCLICKED":
             all_params.insert(0, IRValue(value="\U0001f3f3\ufe0f\u200d\U0001f7e9", kind="symbol"))
 
-        if all_params:
-            text = replace_placeholders(text, [self._ir_to_placeholder(p) for p in all_params])
-
         return IRHatBlock(opcode=self.opcode, category=self.color,
                           text=text, inputs=all_params)
 
@@ -416,9 +405,6 @@ class TurnLeftRightBlock(SimpleBlock):
         fields_ir = self._decode_fields_ir(blocksAST)
         # Insert arrow as first parameter, shift others to %2, %3, ...
         all_params = [IRValue(value=self.arrow, kind="symbol"), *fields_ir, *inputs_ir]
-
-        if all_params:
-            text = replace_placeholders(text, [self._ir_to_placeholder(p) for p in all_params])
 
         return IRBlock(opcode=self.opcode, category=self.color,
                        text=text, inputs=all_params, fields=[])
