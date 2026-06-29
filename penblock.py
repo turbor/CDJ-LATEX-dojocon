@@ -1,12 +1,14 @@
-from block import SimpleBlock, replace_namedinput
+from block import SimpleBlock
 from ir import IR, IRBlock, IRValue
 from translator import Translator
+import re
 
 
 class PenBlock(SimpleBlock):
     """Handles pen extension blocks. Overrides to_ir() because pen blocks
     use dot-notation l10n keys (e.g. "pen.clear") and named input placeholders
-    like [COLOR] instead of positional %1 placeholders."""
+    like [COLOR] instead of positional %1 placeholders.
+    We convert [NAME] placeholders to %N so the renderer can handle them uniformly."""
 
     # Maps uppercased pen opcodes to their l10n translation keys
     _opcode_to_l10n = {
@@ -22,23 +24,25 @@ class PenBlock(SimpleBlock):
     }
 
     def to_ir(self, blocksAST: dict) -> IR:
-        """Pen blocks use named placeholders [COLOR], [SIZE] etc. in their
-        translation strings instead of positional %1, %2."""
+        """Convert named [PLACEHOLDER] text to positional %N format so the
+        renderer handles all substitution uniformly."""
         l10n_key = self._opcode_to_l10n.get(self.opcode, self.opcode)
         text = Translator().translateOpcode(l10n_key)
 
         # Pen icon prefix
         text = "\u270e : " + text
 
-        # Decode inputs as a name->IR dict for named placeholder replacement
-        inputs_by_name = {}
+        # Decode inputs preserving their order
+        input_names = []
+        input_nodes = []
         for name, arr in self.inputs.items():
-            inputs_by_name[name] = self._decode_input_array_ir(arr, blocksAST)
+            input_names.append(name)
+            input_nodes.append(self._decode_input_array_ir(arr, blocksAST))
 
-        # Replace [NAME] placeholders with the decoded input values
-        if inputs_by_name:
-            placeholder_strings = {k: self._ir_to_placeholder(v) for k, v in inputs_by_name.items()}
-            text = replace_namedinput(text, placeholder_strings)
+        # Convert [NAME] placeholders to %1, %2, ... in the order inputs appear
+        # so the renderer can substitute them with proper formatting
+        for i, name in enumerate(input_names):
+            text = text.replace(f"[{name}]", f"%{i + 1}")
 
         return IRBlock(opcode=self.opcode, category=self.color,
-                       text=text, inputs=list(inputs_by_name.values()), fields=[])
+                       text=text, inputs=input_nodes, fields=[])

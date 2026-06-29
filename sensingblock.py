@@ -1,18 +1,14 @@
-from block import SimpleBlock, Block, replace_placeholders
+from block import SimpleBlock, Block
 from ir import IR, IROperator, IRDropdown, IRValue
 from translator import Translator
 
 
 class SensingBlock(SimpleBlock):
     """Handles sensing blocks. These can appear as reporters in other blocks' inputs.
-    Special handling for:
-    - SENSING_TOUCHINGOBJECTMENU: shadow menu for touching object selection
-    - SENSING_KEYOPTIONS: shadow menu for key selection
-    - SENSING_TOUCHINGOBJECT: resolves the touching object menu (_mouse_, _edge_, sprite)
-    - SENSING_TOUCHINGCOLOR: resolves color input
-    - SENSING_COLORISTOUCHINGCOLOR: resolves two color inputs
-    - SENSING_KEYPRESSED: resolves key option menu with special key translation
-    - SENSING_CURRENT: resolves the current time field (year, month, etc.)"""
+    All shadow_to_ir() methods return IROperator with unresolved template text
+    and operand IR nodes - the renderer resolves placeholders with proper formatting.
+    This allows nested blocks (e.g. a sensing diamond inside an operator oval) to
+    be rendered recursively with correct decorations at each level."""
 
     # Internal values in the touching object menu that need translation
     _touching_special = {
@@ -34,7 +30,7 @@ class SensingBlock(SimpleBlock):
     def shadow_to_ir(self, blocksAST: dict) -> IR:
         """Decode sensing block when used as an inline reporter or menu shadow."""
 
-        # Menu shadow blocks that belong to sensing category
+        # Menu shadow blocks
         if self.opcode == "SENSING_TOUCHINGOBJECTMENU":
             val = self.fields.get("TOUCHINGOBJECTMENU", [None])[0]
             if val:
@@ -47,58 +43,43 @@ class SensingBlock(SimpleBlock):
                 return self._translate_key_value(IRDropdown(value=val))
             return IRDropdown(value="?")
 
-        # Reporter blocks used as shadows in other blocks' inputs
+        # Reporter blocks - return IROperator with template + operands
         if self.opcode == "SENSING_TOUCHINGOBJECT":
-            # "touching %1?" with the object menu as parameter
             text = Translator().translateOpcode(self.opcode)
             item = self.inputs.get("TOUCHINGOBJECTMENU")
+            operands = []
             if item is not None:
                 resolved = self._decode_input_value_ir(item[1], blocksAST)
-                # Translate special values (_mouse_, _edge_)
                 if isinstance(resolved, IRDropdown):
                     resolved = self._translate_touching_value(resolved)
-                text = replace_placeholders(text, [self._ir_to_placeholder(resolved)])
+                operands.append(resolved)
             return IROperator(opcode=self.opcode, category=self.color,
-                              text=text, operands=[])
+                              text=text, operands=operands)
 
         if self.opcode == "SENSING_TOUCHINGCOLOR":
-            # "touching color %1?"
             text = Translator().translateOpcode(self.opcode)
-            inputs_ir = self._decode_inputs_ir(blocksAST)
-            if inputs_ir:
-                text = replace_placeholders(text, [self._ir_to_placeholder(p) for p in inputs_ir])
             return IROperator(opcode=self.opcode, category=self.color,
-                              text=text, operands=inputs_ir)
+                              text=text, operands=self._decode_inputs_ir(blocksAST))
 
         if self.opcode == "SENSING_COLORISTOUCHINGCOLOR":
-            # "color %1 is touching %2?"
             text = Translator().translateOpcode(self.opcode)
-            inputs_ir = self._decode_inputs_ir(blocksAST)
-            if inputs_ir:
-                text = replace_placeholders(text, [self._ir_to_placeholder(p) for p in inputs_ir])
             return IROperator(opcode=self.opcode, category=self.color,
-                              text=text, operands=inputs_ir)
+                              text=text, operands=self._decode_inputs_ir(blocksAST))
 
         if self.opcode == "SENSING_KEYPRESSED":
-            # "key %1 pressed?" with a key option menu
             text = Translator().translateOpcode(self.opcode)
-            inputs_ir = self._decode_inputs_ir(blocksAST)
-            if inputs_ir:
-                text = replace_placeholders(text, [self._ir_to_placeholder(p) for p in inputs_ir])
             return IROperator(opcode=self.opcode, category=self.color,
-                              text=text, operands=inputs_ir)
+                              text=text, operands=self._decode_inputs_ir(blocksAST))
 
         if self.opcode == "SENSING_CURRENT":
-            # "current %1" with the time unit from CURRENTMENU field
             text = Translator().translateOpcode(self.opcode)
             menu_value = self.fields.get("CURRENTMENU", [None])[0]
+            operands = []
             if menu_value:
-                # Translate via constructed key: SENSING_CURRENT_YEAR, etc.
                 key = f"SENSING_CURRENT_{menu_value}"
-                translated = Translator().translateOpcode(key)
-                text = replace_placeholders(text, [translated])
+                operands.append(IRDropdown(value=Translator().translateOpcode(key)))
             return IROperator(opcode=self.opcode, category=self.color,
-                              text=text, operands=[])
+                              text=text, operands=operands)
 
         # Generic sensing reporters (answer, mouse x, timer, etc.)
         return IRDropdown(value=Translator().translateOpcode(self.opcode))

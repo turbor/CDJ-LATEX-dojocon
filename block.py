@@ -160,24 +160,6 @@ class Block:
         return IRValue(value=str(val), kind="unknown")
 
     @staticmethod
-    def _ir_to_placeholder(node: IR) -> str:
-        """Convert an IR node to a placeholder string for text substitution.
-        This is used during IR construction to fill translated text templates."""
-        match node:
-            case IRValue():
-                return node.value
-            case IRDropdown():
-                return node.value
-            case IRVariable():
-                return node.name
-            case IRList():
-                return node.name
-            case IROperator():
-                return node.text
-            case _:
-                return str(node)
-
-    @staticmethod
     def convert_list_to_block(block):
         """Block stored as an array instead of a dict.
         This is for variables, lists and direct values like numbers, angles,
