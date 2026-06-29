@@ -277,7 +277,7 @@ class Block:
                     match opcode:
                         case "EVENT_BROADCAST" | "EVENT_BROADCASTANDWAIT":
                             blk = SimpleBlock(**paramdict)
-                        case "EVENT_WHENKEYPRESSED":
+                        case "EVENT_WHENKEYPRESSED" | "EVENT_WHENGREATERTHAN":
                             blk = EventBlock(**paramdict)
                         case _:
                             blk = HatBlock(**paramdict)
