@@ -58,7 +58,8 @@ SCRATCH3 = {"motion": {"opcodes": [
             "SOUND_CLEAREFFECTS",
             "SOUND_CHANGEVOLUMEBY",
             "SOUND_SETVOLUMETO",
-            "SOUND_VOLUME"
+            "SOUND_VOLUME",
+            "SOUND_SOUNDS_MENU"
         ],"color":"magenta","rgb":"#cf5acf"},
         "event": {"opcodes":  [
             "EVENT_WHENFLAGCLICKED",
