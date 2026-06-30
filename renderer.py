@@ -1,3 +1,4 @@
+import os
 from abc import ABC, abstractmethod
 from ir import (IR, IRScript, IRBlock, IRCMouth, IRValue,
                 IRDropdown, IRVariable, IRList, IROperator, IRHatBlock)
@@ -356,6 +357,7 @@ class LatexRenderer(Renderer):
             r"\usepackage[utf8]{inputenc}" "\n"
             r"\usepackage[T1]{fontenc}" "\n"
             r"\usepackage[margin=2cm]{geometry}" "\n"
+            r"\usepackage{graphicx}" "\n"
             r"\usepackage{scratch3}" "\n"
             f"\\setscratch{{else word={self._else_word}}}" "\n"
             r"\begin{document}" "\n"
@@ -364,6 +366,18 @@ class LatexRenderer(Renderer):
     def render_postamble(self) -> str:
         """Return the LaTeX document closing."""
         return r"\end{document}" "\n"
+
+    def render_sprite_image(self, image_path: str):
+        """Emit a tikz overlay that places the sprite costume in the top-right corner.
+        Uses 'remember picture, overlay' so it floats over the page content
+        without affecting text flow.
+        The caller is responsible for providing a path that is correct relative
+        to the .tex file location (relative when using -o, absolute otherwise)."""
+        print(r"\begin{tikzpicture}[remember picture, overlay]")
+        print(f"  \\node[anchor=north east, inner sep=5mm] at (current page.north east)")
+        print(f"    {{\\includegraphics[height=2cm]{{{image_path}}}}};")
+        print(r"\end{tikzpicture}")
+        print()
 
     def render_script(self, script: IRScript, depth: int):
         """Render a complete script as a scratch environment.

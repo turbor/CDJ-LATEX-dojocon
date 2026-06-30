@@ -1,4 +1,7 @@
 import argparse
+import os
+import re
+import subprocess
 import sys
 import textwrap
 import zipfile
@@ -44,34 +47,40 @@ def parse_cli_arguments():
     """
     parser = argparse.ArgumentParser(
         description = textwrap.dedent("""\
-        Scratch sb3 parser to provide a text or latex representation of the code blocks in the SB3 file.
-        It uses the translation files of the scratch3 project to display he blocks in the correct language.
-        
-        Using an xterm with the FiraCode Nerd Font for the extra unicode chars is recommended.
-        This program is a work in progress. 
-        Please report bugs (preferably together with the sb3 file causing the error).
-        
-        """),formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('sb3file',
-                        help="The sb3 scratch file to parse")
-    parser.add_argument('outfile', nargs='?',
-                        help="Outputfile, otherwise stdout is used")
-    parser.add_argument("-v", "--verbosity", action="count", default=0,
-                        help="Increase verbosity while parsing")
-                        # 0 = not verbose
-                        # 1 = +content of sb3 file
-                        # 2 = +dump AST building per sprite
-                        # 3 = +dump project.json
+        Parse a Scratch .sb3 file and produce a text or LaTeX representation
+        of the code blocks.
 
+        Blocks are displayed in the language selected with -l, using the
+        scratch-l10n translation files.
+        """),formatter_class=argparse.RawTextHelpFormatter,
+        epilog=textwrap.dedent("""\
+        output formats:
+          plain     ASCII text, no colors
+          ansi      colored terminal output (default)
+          nerdfont  colored output with Nerd Font glyphs (requires FiraCode or similar)
+          latex     compilable LaTeX using the scratch3 package (use with -o)
+
+        examples:
+          %(prog)s project.sb3
+          %(prog)s -f plain -l nl project.sb3
+          %(prog)s -f latex -o output/ project.sb3
+          %(prog)s -s Sprite1 -s Sprite2 project.sb3
+        """))
+    parser.add_argument('sb3file',
+                        help="the .sb3 scratch file to parse")
     parser.add_argument("-f", "--format", choices=["plain", "ansi", "nerdfont", "latex"],
                         default="ansi",
-                        help="Outputformat to use")
+                        help="output format (default: ansi)")
     parser.add_argument("-l", "--language", default="en",
-                        help="Language used to show blocks\nTry to use the environments langue if not selected")
+                        help="language for block text, e.g. en, nl, fr (default: en)")
     parser.add_argument("-s", "--sprite", action="append",
-                        help="Select individual sprite to show, otherwise all sprites are shown\nMultiple -s can be specified")
+                        help="show only this sprite (repeatable)")
+    parser.add_argument("-o", "--output", default=None,
+                        help="output directory for latex mode\ncreates <dir>/<name>.tex + <dir>/sprites/")
     parser.add_argument("-b", "--hatblocksonly", action="store_true",
-                        help="Only show programs starting with a hatblock")
+                        help="only show scripts starting with a hat block")
+    parser.add_argument("-v", "--verbosity", action="count", default=0,
+                        help="increase verbosity (-v: file list, -vv: AST, -vvv: json)")
 
     args = parser.parse_args()
     return args
@@ -158,10 +167,59 @@ def create_sprite(target, args):
     return sprite
 
 
+def extract_costumes(sb3_file: str, target: dict, output_dir: str) -> list[str]:
+    """Extract all costumes for a sprite/stage from the sb3 archive.
+    SVG files are converted to PNG using inkscape.
+    Returns list of output PNG file paths."""
+    os.makedirs(output_dir, exist_ok=True)
+    sprite_name = target['name']
+    safe_name = re.sub(r'[^\w\-]', '_', sprite_name)
+    png_paths = []
+
+    with zipfile.ZipFile(sb3_file) as archive:
+        for idx, costume in enumerate(target['costumes']):
+            md5ext = costume['md5ext']
+            data_format = costume['dataFormat']
+            out_base = f"{safe_name}_{idx + 1}"
+
+            if data_format == 'png':
+                out_path = os.path.join(output_dir, f"{out_base}.png")
+                with archive.open(md5ext) as src, open(out_path, 'wb') as dst:
+                    dst.write(src.read())
+            elif data_format == 'svg':
+                svg_path = os.path.join(output_dir, f"{out_base}.svg")
+                out_path = os.path.join(output_dir, f"{out_base}.png")
+                with archive.open(md5ext) as src, open(svg_path, 'wb') as dst:
+                    dst.write(src.read())
+                # Convert SVG to PNG using inkscape
+                subprocess.run(
+                    ['inkscape', svg_path,
+                     '--export-type=png',
+                     '--export-filename=' + out_path,
+                     '--export-height=200'],
+                    capture_output=True
+                )
+                os.remove(svg_path)
+            else:
+                continue
+            png_paths.append(out_path)
+
+    return png_paths
+
+
 def main(args):
     global data
 
     renderer = get_renderer(args.format)
+
+    # If -o is specified, set up output directory and redirect stdout to .tex file
+    output_file = None
+    if args.output and args.format == "latex":
+        os.makedirs(args.output, exist_ok=True)
+        tex_name = os.path.splitext(os.path.basename(args.sb3file))[0] + ".tex"
+        tex_path = os.path.join(args.output, tex_name)
+        output_file = open(tex_path, 'w', encoding='utf-8')
+        sys.stdout = output_file
 
     # LaTeX: configure and emit document preamble
     if hasattr(renderer, 'render_preamble'):
@@ -219,6 +277,23 @@ def main(args):
     for target in data['targets']:
         if not args.sprite or target['name'] in args.sprite:
             renderer.print_underlined(target['name'])
+
+            # Extract costumes and show first one in LaTeX output
+            if args.format == "latex":
+                # Place sprites subdir relative to the output directory
+                if args.output:
+                    sprites_dir = os.path.join(args.output, "sprites")
+                else:
+                    sprites_dir = "sprites"
+                costume_paths = extract_costumes(args.sb3file, target, sprites_dir)
+                if costume_paths:
+                    # Use relative path so the .tex + sprites/ dir are portable together
+                    if args.output:
+                        rel_path = os.path.relpath(costume_paths[0], args.output)
+                    else:
+                        rel_path = os.path.abspath(costume_paths[0])
+                    renderer.render_sprite_image(rel_path)
+
             sprite_object = create_sprite(target, args)
             # Phase 1: build intermediate representation from AST
             ir_scripts = sprite_object.build_ir_scripts(args)
@@ -236,6 +311,13 @@ def main(args):
     # LaTeX: emit document postamble
     if hasattr(renderer, 'render_postamble'):
         print(renderer.render_postamble())
+
+    # Restore stdout and close output file if we redirected
+    if output_file:
+        sys.stdout = sys.__stdout__
+        output_file.close()
+        tex_name = os.path.splitext(os.path.basename(args.sb3file))[0] + ".tex"
+        print(f"Written to {os.path.join(args.output, tex_name)}", file=sys.stderr)
 
 
 
