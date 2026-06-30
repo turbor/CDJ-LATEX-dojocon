@@ -163,6 +163,13 @@ def main(args):
 
     renderer = get_renderer(args.format)
 
+    # LaTeX: configure and emit document preamble
+    if hasattr(renderer, 'render_preamble'):
+        # The scratch3 LaTeX package defaults "else word" to "sinon" (French)
+        # because the package author is francophone. Override to match our language.
+        renderer.set_else_word(Translator().translateOpcode("CONTROL_ELSE"))
+        print(renderer.render_preamble())
+
     # To help debugging we can dump the content of the sb3 archive
     if args.verbosity > 0:
         try:
@@ -189,7 +196,7 @@ def main(args):
             print("\n\n")
 
     # If we did not ask for a specific sprite we print the extra info present in the json.
-    if not args.sprite:
+    if not args.sprite and args.format != "latex":
         # Show the list of extensions used in this projects
         renderer.print_boxed("Extensions used")
         if len(data['extensions']) == 0:
@@ -221,10 +228,14 @@ def main(args):
                 renderer.render_script(ir_script, depth=0)
 
     # The final metadata in the project
-    if not args.sprite:
+    if not args.sprite and args.format != "latex":
         renderer.print_boxed("Metadata")
         for target in data['meta']:
             print(f"{target:>7}: {data['meta'][target]}")
+
+    # LaTeX: emit document postamble
+    if hasattr(renderer, 'render_postamble'):
+        print(renderer.render_postamble())
 
 
 
