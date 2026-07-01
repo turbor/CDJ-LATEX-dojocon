@@ -62,6 +62,10 @@ class Block:
         """Phase 1: Convert this block to an IR node.
         Base implementation handles simple blocks (no C-mouth).
         Text keeps %1, %2 placeholders - the renderer resolves them in Phase 2."""
+        # Shadow blocks (menus, reporters) that ended up top-level on the canvas
+        # should render using their shadow logic, not as statement blocks.
+        if self.shadow:
+            return self.shadow_to_ir(blocksAST)
         text = self._get_translated_text()
         inputs_ir = self._decode_inputs_ir(blocksAST)
         fields_ir = self._decode_fields_ir(blocksAST)

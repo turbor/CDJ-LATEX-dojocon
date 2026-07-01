@@ -56,3 +56,7 @@ class OperatorBlock(SimpleBlock):
 
         return IROperator(opcode=self.opcode, category=self.color,
                           text=text, operands=operands)
+
+    def to_ir(self, blocksAST: dict) -> IR:
+        """Operator blocks render the same whether top-level or inline."""
+        return self.shadow_to_ir(blocksAST)
