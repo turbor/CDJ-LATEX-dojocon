@@ -335,6 +335,17 @@ class LatexRenderer(Renderer):
         # pdflatex cannot render this glyph (it's outside T1/OT1 encoding), so replace
         # with a simple ASCII marker.
         text = text.replace("\u270e", "/")
+        # Extension icons that pdflatex cannot render (outside T1 encoding)
+        text = text.replace("\u266b", "/")       # music note
+        text = text.replace("\U0001f3a5", "/")   # video camera
+        text = text.replace("\U0001f642", "/")   # face sensing
+        text = text.replace("\U0001f4ac", "/")   # speech bubble (text2speech)
+        text = text.replace("\U0001f310", "/")   # globe (translate)
+        text = text.replace("\u2328", "/")       # keyboard (makey makey)
+        text = text.replace("\u25a3", "/")       # square (microbit)
+        text = text.replace("\u2699", "/")       # gear (gdx force)
+        text = text.replace("\U0001f916", "/")   # robot (ev3)
+        text = text.replace("\U0001f9e9", "/")   # puzzle piece (boost/wedo)
         return text.translate(self._latex_special)
 
     def __init__(self):

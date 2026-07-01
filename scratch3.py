@@ -176,7 +176,8 @@ SCRATCH3 = {"motion": {"opcodes": [
             "PEN_CHANGEPENCOLORPARAMBY",
             "PEN_SETPENCOLORPARAMTO",
             "PEN_CHANGEPENSIZEBY",
-            "PEN_SETPENSIZETO"
+            "PEN_SETPENSIZETO",
+            "PEN_MENU_COLORPARAM"
         ],"color":"limegreen","rgb":"#0fbd8c"},
         "videoExtension": {"opcodes":  [
             "VIDEOSENSING_WHENMOTIONGREATERTHAN",

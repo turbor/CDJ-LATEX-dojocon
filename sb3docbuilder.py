@@ -178,7 +178,7 @@ def extract_costumes(sb3_file: str, target: dict, output_dir: str) -> list[str]:
 
     with zipfile.ZipFile(sb3_file) as archive:
         for idx, costume in enumerate(target['costumes']):
-            md5ext = costume['md5ext']
+            md5ext = costume.get('md5ext', f"{costume['assetId']}.{costume['dataFormat']}")
             data_format = costume['dataFormat']
             out_base = f"{safe_name}_{idx + 1}"
 

@@ -27,7 +27,14 @@ class Monitor:
             key = f"SENSING_CURRENT_{menu}"
             name = Translator().translateOpcode(key)
         else:
+            # Try uppercase opcode first (works for sensing_username etc.)
             name = Translator().translateOpcode(self.opcode.upper())
+            # If untranslated, try dot-notation for extensions (e.g. faceSensing_faceTilt -> faceSensing.faceTilt)
+            if name == self.opcode.upper() and '_' in self.opcode:
+                dot_key = self.opcode.replace('_', '.', 1)
+                translated = Translator().translateOpcode(dot_key)
+                if translated != dot_key:
+                    name = translated
         print(f"Name: {name}")
         match self.mode:
             case "default":

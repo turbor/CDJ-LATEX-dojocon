@@ -277,6 +277,39 @@ class Block:
                 case "penExtension":
                     blk = PenBlock(**paramdict)
 
+                case "musicextension":
+                    blk = MusicBlock(**paramdict)
+
+                case "videoExtension":
+                    blk = VideoSensingBlock(**paramdict)
+
+                case "faceSensingExtension":
+                    blk = FaceSensingBlock(**paramdict)
+
+                case "textToSpeechExtension":
+                    blk = Text2SpeechBlock(**paramdict)
+
+                case "translateExtension":
+                    blk = TranslateBlock(**paramdict)
+
+                case "makeyMakeyExtension":
+                    blk = MakeyMakeyBlock(**paramdict)
+
+                case "microbitExtension":
+                    blk = MicrobitBlock(**paramdict)
+
+                case "goDirectForceExtension":
+                    blk = GdxForBlock(**paramdict)
+
+                case "legoMindstormsEV3Extension":
+                    blk = EV3Block(**paramdict)
+
+                case "legoBoostExtension":
+                    blk = BoostBlock(**paramdict)
+
+                case "legoWeDoExtension":
+                    blk = WeDo2Block(**paramdict)
+
                 case "my":
                     blk = MyBlock(**paramdict)
 
@@ -548,7 +581,10 @@ class MyBlock(Block):
 
 # Subclass imports at the bottom to avoid circular imports.
 # These files define specialized shadow_to_ir() overrides per category.
-from penblock import PenBlock
+from extensionblock import (PenBlock, MusicBlock, VideoSensingBlock,
+                            FaceSensingBlock, Text2SpeechBlock, TranslateBlock,
+                            MakeyMakeyBlock, MicrobitBlock, GdxForBlock,
+                            EV3Block, BoostBlock, WeDo2Block)
 from motionblock import MotionBlock
 from operatorblock import OperatorBlock
 from looksblock import LooksBlock
