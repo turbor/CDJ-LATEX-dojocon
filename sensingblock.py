@@ -126,11 +126,18 @@ class SensingBlock(SimpleBlock):
             # "%1 of %2" where %1 is property name, %2 is sprite/stage
             text = Translator().translateOpcode(self.opcode)
             operands = []
-            # %1: property field - translate via SENSING_OF_{PROPERTY}
+            # %1: property field - can be a built-in (x position, size, etc.)
+            # or a user-defined variable name. Built-ins have l10n keys like
+            # SENSING_OF_XPOSITION; user variables should pass through as-is.
             prop = self.fields.get("PROPERTY", [None])[0]
             if prop:
-                key = f"SENSING_OF_{prop.upper()}"
-                operands.append(IRDropdown(value=Translator().translateOpcode(key)))
+                key = f"SENSING_OF_{prop.upper().replace(' ', '')}"
+                translated = Translator().translateOpcode(key)
+                # If translation returned the key unchanged, it's a user variable
+                if translated == key:
+                    operands.append(IRDropdown(value=prop))
+                else:
+                    operands.append(IRDropdown(value=translated))
             # %2: object menu input
             obj_input = self.inputs.get("OBJECT")
             if obj_input:

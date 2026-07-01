@@ -67,6 +67,9 @@ class Block:
         fields_ir = self._decode_fields_ir(blocksAST)
         # Combine fields and inputs as positional parameters
         all_params = [*fields_ir, *inputs_ir]
+        # If text has placeholders but no inputs were decoded (empty slot), fill them
+        if not all_params and '%1' in text:
+            all_params.append(IRValue(value="", kind="empty"))
         return IRBlock(opcode=self.opcode, category=self.color,
                        text=text, inputs=all_params, fields=[])
 
@@ -323,6 +326,10 @@ class SingleMouthBlock(Block):
         fields_ir = self._decode_fields_ir(blocksAST)
         all_params = [*fields_ir, *inputs_ir]
 
+        # If text has %1 but no condition was plugged in, insert an empty placeholder
+        if not all_params and '%1' in text:
+            all_params.append(IRValue(value="", kind="empty"))
+
         # inputs entries are [shadow_type, value] arrays, so [1] is the block ID.
         # Default [None, None] prevents IndexError when SUBSTACK is absent (empty body).
         substack_id = self.inputs.get('SUBSTACK', [None, None])[1]
@@ -343,6 +350,10 @@ class DoubleMouthBlock(Block):
         inputs_ir = self._decode_inputs_ir(blocksAST)
         fields_ir = self._decode_fields_ir(blocksAST)
         all_params = [*fields_ir, *inputs_ir]
+
+        # If text has %1 but no condition was plugged in, insert an empty placeholder
+        if not all_params and '%1' in text:
+            all_params.append(IRValue(value="", kind="empty"))
 
         # inputs entries are [shadow_type, value] arrays, so [1] is the block ID.
         # Default [None, None] prevents IndexError when SUBSTACK is absent (empty body).

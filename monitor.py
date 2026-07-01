@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from translator import Translator
 
 @dataclass(frozen=True)
 class Monitor:
@@ -17,8 +18,17 @@ class Monitor:
     isDiscrete: bool|None
 
     def dumpInfo(self ):
-        #pprint(self, indent=2)
-        print(self.opcode + ": " + self.params.get('LIST' if self.mode=="list" else 'VARIABLE',"?") )
+        if self.mode == "list":
+            name = self.params.get('LIST', self.id)
+        elif 'VARIABLE' in self.params:
+            name = self.params['VARIABLE']
+        elif 'CURRENTMENU' in self.params:
+            menu = self.params['CURRENTMENU']
+            key = f"SENSING_CURRENT_{menu}"
+            name = Translator().translateOpcode(key)
+        else:
+            name = Translator().translateOpcode(self.opcode.upper())
+        print(f"Name: {name}")
         match self.mode:
             case "default":
                 print(f"Value: {self.value}")

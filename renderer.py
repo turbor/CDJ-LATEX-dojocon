@@ -68,6 +68,8 @@ class PlainRenderer(Renderer):
             case IRValue():
                 if node.kind == "color":
                     return f"[{node.value}]"
+                if node.kind == "empty":
+                    return "<>"
                 return f"( {node.value} )"
             case IRDropdown():
                 return f"| {node.value} v|"
@@ -199,6 +201,8 @@ class AnsiRenderer(Renderer):
             case IRValue():
                 if node.kind == "color":
                     return self._render_color_swatch(node.value, parent_color)
+                if node.kind == "empty":
+                    return "<>"
                 white = "\033[38;5;0;48;5;15m"
                 return f"{white} {node.value} {self._color(parent_color)}"
             case IRDropdown():
@@ -492,6 +496,8 @@ class LatexRenderer(Renderer):
                     if node.value == "\u27F3":
                         return "\\turnright{}"
                     return self._escape(node.value)
+                if node.kind == "empty":
+                    return "\\boolempty"
                 return f"\\ovalnum{{{self._escape(node.value)}}}"
 
             case IRDropdown():
@@ -591,6 +597,15 @@ class NerdFontRenderer(AnsiRenderer):
             case IRValue():
                 if node.kind == "color":
                     return self._render_color_swatch(node.value, parent_color)
+                if node.kind == "empty":
+                    # Empty boolean slot: pointed hexagon with white fill
+                    _, parent_bg = self._colorvals[parent_color]
+                    white_bg = self._colorvals["white"][1]
+                    point_l = f"\033[38;5;{white_bg};48;5;{parent_bg}m"
+                    white = "\033[38;5;0;48;5;15m"
+                    point_r = f"\033[38;5;{white_bg};48;5;{parent_bg}m"
+                    parent = self._color(parent_color)
+                    return f"{point_l}{self.POINT_L}{white}  {point_r}{self.POINT_R}{parent}"
                 # White rounded pill for values
                 white_fg = "\033[38;5;15m"  # white foreground (for round glyph)
                 white = "\033[38;5;0;48;5;15m"  # black on white
