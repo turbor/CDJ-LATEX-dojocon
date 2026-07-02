@@ -12,7 +12,7 @@ from monitor import Monitor
 from translator import Translator
 from dumpAst import dumpAst
 from ir import build_ir_script
-from renderer import PlainRenderer, AnsiRenderer, LatexRenderer, NerdFontRenderer
+from renderers import PlainRenderer, AnsiRenderer, LatexRenderer, NerdFontRenderer
 
 data = {}
 
@@ -233,17 +233,15 @@ def main(args):
         try:
             renderer.print_underlined(f"files in {args.sb3file}")
             show_sb3_files(args.sb3file)
-        except Exception as e:
-            # Something went wrong so quit.
-            print(e)
+        except (FileNotFoundError, zipfile.BadZipFile) as e:
+            print(f"Error reading {args.sb3file}: {e}", file=sys.stderr)
             sys.exit(1)
 
     try:
         # Read the json from the sb3 file specified
         data = get_json_info(args.sb3file)
-    except Exception as e:
-        # Something went wrong so quit.
-        print(e)
+    except (FileNotFoundError, zipfile.BadZipFile, KeyError, json.JSONDecodeError) as e:
+        print(f"Error parsing {args.sb3file}: {e}", file=sys.stderr)
         sys.exit(1)
 
     # To help debugging we can dump the entire project.json

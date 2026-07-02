@@ -1,4 +1,4 @@
-from block import SimpleBlock
+from block import SimpleBlock, BlockParseError
 from ir import IR, IRDropdown
 from translator import Translator
 
@@ -45,7 +45,7 @@ class MotionBlock(SimpleBlock):
         if self.opcode.endswith("_MENU"):
             field_key = self._menu_field_keys.get(self.opcode)
             if field_key is None:
-                raise Exception(f"Unknown motion menu shadow block: {self.opcode}")
+                raise BlockParseError(f"Unknown motion menu shadow block: {self.opcode}")
 
             destination = self.fields[field_key]
             if isinstance(destination, list):

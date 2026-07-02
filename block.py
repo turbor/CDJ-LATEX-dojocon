@@ -10,6 +10,11 @@ from ir import (IR, IRScript, IRBlock, IRCMouth, IRValue,
                 build_ir_script)
 
 
+class BlockParseError(ValueError):
+    """Raised when a block cannot be parsed from the project.json data."""
+    pass
+
+
 def replace_placeholders(text, values):
     """
     Replace %digit with corresponding value used to resolve the translation string.
@@ -335,7 +340,7 @@ class Block:
                     elif op in ['DELETE_THIS_CLONE', 'STOP', 'CREATE_CLONE_OF_MENU']:
                         blk = ControlBlock(**paramdict)
                     else:
-                        raise Exception(f"Unknown control block {op}")
+                        raise BlockParseError(f"Unknown control block: {op}")
 
                 case _:
                     blk = SimpleBlock(**paramdict)
@@ -346,7 +351,7 @@ class Block:
         elif isinstance(block, list):
             return Block.convert_list_to_block(block)
 
-        raise Exception("Unknown block type")
+        raise BlockParseError(f"Unknown block type: {type(block)}")
 
 
 class SimpleBlock(Block):
