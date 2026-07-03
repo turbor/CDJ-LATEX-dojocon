@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from block import Block
-from ir import build_ir_script, IRScript
+from ir import build_ir_script, IRScript, IRHatBlock
 
 @dataclass
 class Sprite:
@@ -23,9 +23,13 @@ class Sprite:
 
         Returns a list of IRScript, one per top-level block (each script is
         a hat block followed by its chain of connected blocks).
+        If args.hatblocksonly is set, only scripts starting with a hat block are returned.
         """
         scripts = []
         for name, block in self.blocksAST.items():
             if block.topLevel:
-                scripts.append(build_ir_script(block, self.blocksAST))
+                script = build_ir_script(block, self.blocksAST)
+                if args.hatblocksonly and (not script.blocks or not isinstance(script.blocks[0], IRHatBlock)):
+                    continue
+                scripts.append(script)
         return scripts

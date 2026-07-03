@@ -362,7 +362,8 @@ class SimpleBlock(Block):
 class SingleMouthBlock(Block):
     """A block with one C-mouth (repeat, forever, if, repeat_until)."""
 
-    def to_ir(self, blocksAST: dict) -> IR:
+    def _build_cmouth_params(self, blocksAST: dict):
+        """Shared logic for C-mouth blocks: decode text, params, and primary substack."""
         text = self._get_translated_text()
         inputs_ir = self._decode_inputs_ir(blocksAST)
         fields_ir = self._decode_fields_ir(blocksAST)
@@ -380,30 +381,19 @@ class SingleMouthBlock(Block):
         else:
             body = IRScript(blocks=[])
 
+        return text, all_params, body
+
+    def to_ir(self, blocksAST: dict) -> IR:
+        text, all_params, body = self._build_cmouth_params(blocksAST)
         return IRCMouth(opcode=self.opcode, category=self.color,
                         text=text, inputs=all_params, body=body)
 
 
-class DoubleMouthBlock(Block):
-    """A block with two C-mouths (if-else)."""
+class DoubleMouthBlock(SingleMouthBlock):
+    """A block with two C-mouths (if-else). Extends SingleMouthBlock with SUBSTACK2."""
 
     def to_ir(self, blocksAST: dict) -> IR:
-        text = self._get_translated_text()
-        inputs_ir = self._decode_inputs_ir(blocksAST)
-        fields_ir = self._decode_fields_ir(blocksAST)
-        all_params = [*fields_ir, *inputs_ir]
-
-        # If text has %1 but no condition was plugged in, insert an empty placeholder
-        if not all_params and '%1' in text:
-            all_params.append(IRValue(value="", kind="empty"))
-
-        # inputs entries are [shadow_type, value] arrays, so [1] is the block ID.
-        # Default [None, None] prevents IndexError when SUBSTACK is absent (empty body).
-        substack1_id = self.inputs.get('SUBSTACK', [None, None])[1]
-        if substack1_id is not None:
-            body = build_ir_script(blocksAST[substack1_id], blocksAST)
-        else:
-            body = IRScript(blocks=[])
+        text, all_params, body = self._build_cmouth_params(blocksAST)
 
         substack2_id = self.inputs.get('SUBSTACK2', [None, None])[1]
         if substack2_id is not None:

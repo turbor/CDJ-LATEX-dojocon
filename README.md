@@ -1,27 +1,132 @@
-This repository contains the code for the **sb3docbuilder**
+# sb3docbuilder
 
-## Purpose of this program
-This program parses a scratch sb3 file and creates a text representation of the blocks.
+Parse Scratch `.sb3` files and produce text or LaTeX representations of the code blocks.
 
-By default it extracts all the sprites and the stage and builds a text file with a pseudo version of the programs for the sprite.
-It can also be used to extract the blocks from a specific sprite, or to prepare a latex document with the blocks.
+## Purpose
 
-This program was created after Benoit de Bioley presented a way to draw scratch blocks in Latex. One of the attendees was David Heremans and during the conversation it became clear that some of the participants would rather have a program that extracted the needed info from the sb3 files itself, instead of retyping their programs in latex command blocks.
-So a colaboration was born and sb3docbuilder was the result.
-We hope you enjoy this tool.
+This program extracts the block programs from a Scratch 3 project file and renders them in a human-readable format. It supports multiple output formats including compilable LaTeX that draws Scratch-style blocks using the [scratch3](https://ctan.org/pkg/scratch3) package.
+
+Blocks are displayed in the language of your choice, using the official [scratch-l10n](https://github.com/scratchfoundation/scratch-l10n) translation files.
+
+## Origin
+
+This tool was born from a collaboration between Benoit de Bioley (who demonstrated drawing Scratch blocks in LaTeX) and David Heremans, after participants at a CoderDojo presentation expressed the need to extract block info directly from sb3 files rather than retyping them manually.
+
+## Requirements
+
+- Python 3.10+ (uses match/case syntax)
+- inkscape (optional, for converting SVG sprite costumes to PNG in LaTeX mode)
 
 ## Installation
-The program is a single file python script and can be run from the command line.
-Download your scratch project on your computer and run the script with the sb3 file as argument.
 
-### Usage examples
+```
+git clone <this-repo>
+cd CDJ-LATEX-dojocon
+```
+
+No dependencies beyond the Python standard library. The `scratch-l10n` translation files are included in the repository.
+
+## Usage
+
+```
+python3 sb3docbuilder.py [options] <file.sb3>
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `-f FORMAT` | Output format: `plain`, `ansi` (default), `nerdfont`, `latex` |
+| `-l LANG` | Language for block text (default: `en`). E.g. `nl`, `fr`, `de` |
+| `-s SPRITE` | Show only this sprite (repeatable for multiple sprites) |
+| `-b` | Only show scripts starting with a hat block |
+| `-o DIR` | Output directory for LaTeX mode (creates `DIR/<name>.tex` + `DIR/sprites/`) |
+| `-v` | Increase verbosity (`-v`: file list, `-vv`: AST, `-vvv`: full JSON) |
+
+### Examples
+
+```bash
+# Terminal output with colors (default)
+python3 sb3docbuilder.py project.sb3
+
+# Plain ASCII, Dutch language
+python3 sb3docbuilder.py -f plain -l nl project.sb3
+
+# LaTeX output with sprite images
+python3 sb3docbuilder.py -f latex -o output/ project.sb3
+cd output && pdflatex project.tex
+
+# Only hat-block scripts from a specific sprite
+python3 sb3docbuilder.py -b -s Sprite1 project.sb3
+
+# Nerd Font enhanced output (requires FiraCode Nerd Font or similar)
+python3 sb3docbuilder.py -f nerdfont project.sb3
+```
+
+## Output Formats
+
+| Format | Description |
+|--------|-------------|
+| `plain` | ASCII text, no colors. Suitable for piping or plain text files |
+| `ansi` | Colored terminal output with category-colored blocks |
+| `nerdfont` | Enhanced colored output using Powerline glyphs for block shapes |
+| `latex` | Compilable LaTeX using the scratch3 package (v0.19) |
+
+### LaTeX output
+
+The LaTeX renderer produces a self-contained document using the `scratch3` CTAN package. It handles:
+
+- All block categories with correct `\blockmove`, `\blocklook`, etc. commands
+- Loops (`\blockrepeat`, `\blockinfloop`), conditionals (`\blockif`, `\blockifelse`)
+- Hat blocks (`\blockinit`), stop blocks (`\blockstop`)
+- Operators (`\booloperator`, `\ovaloperator`), variables, lists, dropdowns
+- Color swatches via `\definecolor` + `\pencolor`
+- Sprite costume images in the top-right corner (requires inkscape for SVG conversion)
+
+## Architecture
+
+Two-phase pipeline:
+
+```
+sb3 zip -> project.json -> Block.factory() -> AST -> to_ir() -> IR -> Renderer -> output
+```
+
+1. **Phase 1 (AST -> IR):** Each block's `to_ir()` method produces semantic IR nodes (no formatting)
+2. **Phase 2 (IR -> Output):** A Renderer subclass walks the IR tree and produces formatted output
+
+### Project structure
+
+```
+sb3docbuilder.py       Entry point, CLI, orchestration
+block.py               Core Block dataclass, factory, base IR conversion
+scratch3.py            Opcode registry (categories, colors)
+ir.py                  IR node dataclasses (IRScript, IRBlock, IRCMouth, ...)
+sprite.py              Sprite dataclass, builds IR scripts from AST
+translator.py          Singleton l10n loader
+extensionblock.py      ExtensionBlock base + all extension subclasses
+motionblock.py         MotionBlock (menu shadows, rotation style)
+looksblock.py          LooksBlock (costume/backdrop, effects)
+operatorblock.py       OperatorBlock (math/logic/string reporters)
+sensingblock.py        SensingBlock (sensing reporters, menus)
+soundblock.py          SoundBlock (effect field translation)
+controlblock.py        ControlBlock (stop/clone options)
+eventblock.py          EventBlock (key/loudness fields)
+monitor.py             Monitor dataclass
+dumpAst.py             Debug AST tree printer
+
+renderers/
+    __init__.py        Package exports
+    base.py            Renderer ABC
+    plain.py           PlainRenderer
+    ansi.py            AnsiRenderer
+    nerdfont.py        NerdFontRenderer
+    latex.py           LatexRenderer
+```
 
 ## References
 
-https://en.scratch-wiki.info/wiki/Scratch_File_Format
-
-https://en.scratch-wiki.info/wiki/List_of_Block_Opcodes
-
-https://en.scratch-wiki.info/wiki/Scratch_File_Format#Blocks
-
-https://github.com/scratchfoundation/scratch-l10n/tree/master/editor/blocks
+- https://en.scratch-wiki.info/wiki/Scratch_File_Format
+- https://en.scratch-wiki.info/wiki/Scratch_File_Format#Blocks
+- https://en.scratch-wiki.info/wiki/List_of_Block_Opcodes
+- https://github.com/scratchfoundation/scratch-l10n/tree/master/editor/blocks
+- https://ctan.org/pkg/scratch3

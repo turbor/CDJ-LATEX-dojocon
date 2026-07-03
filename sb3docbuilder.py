@@ -192,14 +192,22 @@ def extract_costumes(sb3_file: str, target: dict, output_dir: str) -> list[str]:
                 with archive.open(md5ext) as src, open(svg_path, 'wb') as dst:
                     dst.write(src.read())
                 # Convert SVG to PNG using inkscape
-                subprocess.run(
-                    ['inkscape', svg_path,
-                     '--export-type=png',
-                     '--export-filename=' + out_path,
-                     '--export-height=200'],
-                    capture_output=True
-                )
-                os.remove(svg_path)
+                try:
+                    result = subprocess.run(
+                        ['inkscape', svg_path,
+                         '--export-type=png',
+                         '--export-filename=' + out_path,
+                         '--export-height=200'],
+                        capture_output=True
+                    )
+                    os.remove(svg_path)
+                    if result.returncode != 0:
+                        print(f"Warning: inkscape failed for {svg_path}, skipping sprite image", file=sys.stderr)
+                        continue
+                except FileNotFoundError:
+                    print("Warning: inkscape not found, sprite images will be omitted", file=sys.stderr)
+                    os.remove(svg_path)
+                    continue
             else:
                 continue
             png_paths.append(out_path)
