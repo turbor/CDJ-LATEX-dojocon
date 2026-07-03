@@ -33,3 +33,16 @@ class Sprite:
                     continue
                 scripts.append(script)
         return scripts
+
+    def get_local_variables(self) -> list[tuple[str, str]]:
+        """Return list of (name, value) for this sprite's local variables.
+        Only meaningful for non-Stage sprites (Stage variables are global)."""
+        if self.isStage:
+            return []
+        return [(val[0], str(val[1])) for val in self.variables.values()]
+
+    def get_local_lists(self) -> list[tuple[str, list]]:
+        """Return list of (name, contents) for this sprite's local lists."""
+        if self.isStage:
+            return []
+        return [(val[0], val[1]) for val in self.lists.values()]

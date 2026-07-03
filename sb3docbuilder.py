@@ -282,9 +282,9 @@ def main(args):
     # if none specified print all sprites
     for target in data['targets']:
         if not args.sprite or target['name'] in args.sprite:
-            renderer.print_underlined(target['name'])
+            sprite_has_image = False
 
-            # Extract costumes and show first one in LaTeX output
+            # Extract costumes and show first one beside the title in LaTeX output
             if args.format == "latex":
                 # Place sprites subdir relative to the output directory
                 if args.output:
@@ -298,9 +298,19 @@ def main(args):
                         rel_path = os.path.relpath(costume_paths[0], args.output)
                     else:
                         rel_path = os.path.abspath(costume_paths[0])
-                    renderer.render_sprite_image(rel_path)
+                    renderer.render_sprite_image(rel_path, target['name'])
+                    sprite_has_image = True
+
+            if not sprite_has_image:
+                renderer.print_underlined(target['name'])
 
             sprite_object = create_sprite(target, args)
+
+            # Show sprite-local variables and lists (not Stage globals)
+            local_vars = sprite_object.get_local_variables()
+            local_lists = sprite_object.get_local_lists()
+            renderer.render_local_variables(local_vars, local_lists)
+
             # Phase 1: build intermediate representation from AST
             ir_scripts = sprite_object.build_ir_scripts(args)
             # Phase 2: render IR to chosen output format

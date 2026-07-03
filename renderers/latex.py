@@ -120,6 +120,7 @@ class LatexRenderer(Renderer):
             r"\usepackage[T1]{fontenc}" "\n"
             r"\usepackage[margin=2cm]{geometry}" "\n"
             r"\usepackage{graphicx}" "\n"
+            r"\usepackage{enumitem}" "\n"
             r"\usepackage{scratch3}" "\n"
             f"\\setscratch{{else word={self._else_word}}}" "\n"
             r"\begin{document}" "\n"
@@ -129,16 +130,20 @@ class LatexRenderer(Renderer):
         """Return the LaTeX document closing."""
         return r"\end{document}" "\n"
 
-    def render_sprite_image(self, image_path: str):
-        """Emit a tikz overlay that places the sprite costume in the top-right corner.
-        Uses 'remember picture, overlay' so it floats over the page content
-        without affecting text flow.
-        The caller is responsible for providing a path that is correct relative
-        to the .tex file location (relative when using -o, absolute otherwise)."""
-        print(r"\begin{tikzpicture}[remember picture, overlay]")
-        print(f"  \\node[anchor=north east, inner sep=5mm] at (current page.north east)")
-        print(f"    {{\\includegraphics[height=2cm]{{{image_path}}}}};")
-        print(r"\end{tikzpicture}")
+    def render_sprite_image(self, image_path: str, title: str):
+        """Emit a sprite heading with the costume image beside it.
+        Uses minipage to place the title on the left and the image on the right,
+        flowing naturally with the document content."""
+        print()
+        print(r"\noindent")
+        print(r"\begin{minipage}[t]{0.78\textwidth}")
+        print(f"\\subsection{{{self._escape(title)}}}")
+        print(r"\end{minipage}%")
+        print(r"\begin{minipage}[t]{0.2\textwidth}")
+        print(r"\raggedleft")
+        print(f"\\includegraphics[height=2cm]{{{image_path}}}")
+        print(r"\end{minipage}")
+        print(r"\vspace{0.5em}")
         print()
 
     def render_script(self, script: IRScript, depth: int):
@@ -306,3 +311,16 @@ class LatexRenderer(Renderer):
 
     def print_underlined(self, title: str):
         print(f"\n\\subsection{{{self._escape(title)}}}")
+
+    def render_local_variables(self, variables: list[tuple[str, str]], lists: list[tuple[str, list]]):
+        """Render local variables as a LaTeX itemize list with escaped names."""
+        if not variables and not lists:
+            return
+        print(r"\noindent\textbf{Local variables:}")
+        print(r"\begin{itemize}[nosep]")
+        for name, value in variables:
+            print(f"  \\item \\ovalvariable{{{self._escape(name)}}} = {self._escape(value)}")
+        for name, contents in lists:
+            print(f"  \\item \\ovallist{{{self._escape(name)}}} = {self._escape(str(contents))}")
+        print(r"\end{itemize}")
+        print()

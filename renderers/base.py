@@ -38,3 +38,15 @@ class Renderer(ABC):
                 return self.render_node(inputs[idx], 0, context)
             return m.group(0)
         return re.sub(r'%(\d+)', replacer, text)
+
+    def render_local_variables(self, variables: list[tuple[str, str]], lists: list[tuple[str, list]]):
+        """Render a sprite's local variables and lists.
+        Default implementation prints plain text. Subclasses override for styling."""
+        if not variables and not lists:
+            return
+        print("  Local variables:")
+        for name, value in variables:
+            print(f"    {name} = {value}")
+        for name, contents in lists:
+            print(f"    {name} (list) = {contents}")
+        print()

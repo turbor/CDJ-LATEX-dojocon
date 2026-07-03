@@ -141,3 +141,16 @@ class AnsiRenderer(Renderer):
     def print_underlined(self, title: str):
         print(f"\n\n  " + self.BOLD + self.UNDERLINE + f" {title} ")
         print(self.RESET)
+
+    def render_local_variables(self, variables: list[tuple[str, str]], lists: list[tuple[str, list]]):
+        """Render local variables with category colors (mango for vars, orange for lists)."""
+        if not variables and not lists:
+            return
+        print(f"  {self.BOLD}Local variables:{self.RESET}")
+        var_color = self._color("mango")
+        list_color = self._color("orange")
+        for name, value in variables:
+            print(f"    {var_color} {name} {self.RESET} = {value}")
+        for name, contents in lists:
+            print(f"    {list_color} {name} {self.RESET} (list) = {contents}")
+        print()
