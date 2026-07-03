@@ -1,5 +1,9 @@
-# This is a module that stores the Scratch3 dict
-# The dict is used in block.py in the factorymethod but we do not want to instantiated and populate it for each call, so it is now moved to this module
+# Opcode registry for all Scratch 3 block categories and extensions.
+#
+# Each category maps opcodes to a color name (used for rendering) and an RGB hex value.
+# Opcodes are stored UPPERCASE because project.json delivers them lowercase and we
+# normalize at ingestion (in Block.factory). The l10n translation keys are also uppercase.
+# OPCODE_TO_CATEGORY (at the bottom) is a reverse lookup built once at import time.
 
 SCRATCH3 = {"motion": {"opcodes": [
             "MOTION_MOVESTEPS",

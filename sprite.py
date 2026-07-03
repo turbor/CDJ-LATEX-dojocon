@@ -4,7 +4,11 @@ from ir import build_ir_script, IRScript, IRHatBlock
 
 @dataclass
 class Sprite:
-    """The sprite class represents the scratch sprites and background stage."""
+    """Represents a Scratch sprite or the stage.
+
+    Each sprite owns its block AST (the programs attached to it) and metadata
+    like costumes, sounds, and local variables. The stage is a special sprite
+    with isStage=True whose variables are global to all sprites."""
     isStage: bool
     name: str
     variables: dict

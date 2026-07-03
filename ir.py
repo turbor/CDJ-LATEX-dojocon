@@ -1,33 +1,14 @@
 from dataclasses import dataclass
 
 """
-This module defines a hierarchy of data structures for representing intermediate
-representation (IR) nodes. These nodes are used for constructing, categorizing,
-and managing various program components and their relationships.
+Intermediate Representation (IR) for Scratch block programs.
 
-The IR node classes include representations for scripts, blocks, values,
-menu selections, variables, lists, and operators. They offer a framework to
-process and resolve translated text, inputs, fields, and additional structural
-information needed for IR functionality.
+The IR is the bridge between parsing (Phase 1) and rendering (Phase 2).
+Phase 1 produces a tree of these nodes from the raw AST - no formatting decisions.
+Phase 2 (renderers) walks this tree and produces formatted output.
 
-This allows for a two phase process
-  Phase 1: Decode to an Intermediate Representation (IR)
-    Walk the AST and produce a tree of semantic nodes - no formatting, no colors, no print calls.
-  Phase 2: Render the IR
-    A separate renderer walks the IR tree and produces output
-
-
-Classes:
-- IR: Base class for intermediate representation nodes.
-- IRScript: Represents a script composed of a sequence of IR blocks.
-- IRBlock: Represents a single block with specified attributes and nested IR structures.
-- IRCMouth: Handles blocks with one or two substacks, such as control flow structures.
-- IRValue: Represents a literal value.
-- IRDropdown: Represents a menu selection item.
-- IRVariable: Represents a program variable.
-- IRList: Represents a program list.
-- IROperator: Represents operations with operands and resolved expressions.
-- IRHatBlock: Represents a top-level event/hat block.
+This separation allows multiple output formats (plain, ANSI, LaTeX) without
+duplicating the block-decoding logic.
 """
 
 

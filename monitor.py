@@ -1,6 +1,10 @@
 from dataclasses import dataclass
 from translator import Translator
 
+# Monitors are the variable/list displays visible on the Scratch stage during execution.
+# They show the current value of a variable, list, or built-in sensor (timer, current date, etc.).
+# The project.json stores them separately from blocks because they are not part of any script.
+
 @dataclass(frozen=True)
 class Monitor:
     id: str

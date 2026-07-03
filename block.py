@@ -47,7 +47,10 @@ def replace_namedinput(text: str, inputs: dict):
 
 @dataclass(kw_only=True)
 class Block:
-    """Block class to store the scratch block information"""
+    """Represents a single Scratch block from the project.json AST.
+
+    Each block knows its opcode, connections (next/parent), and payload (inputs/fields).
+    Subclasses override to_ir() and shadow_to_ir() for category-specific decoding."""
 
     # Following fields are directly related to the blockinfo in the 'project.json' file
     opcode: str          # Opcode identifying the block type
@@ -216,8 +219,11 @@ class Block:
 
     @staticmethod
     def factory(block: dict):
-        """Factory method: create the appropriate Block subclass based on opcode.
-        Dispatches to specialized classes based on the category and opcode."""
+        """Create the appropriate Block subclass from raw project.json data.
+
+        Uses OPCODE_TO_CATEGORY for O(1) lookup of the block's category,
+        then dispatches to the correct subclass. Opcodes are uppercased at
+        this boundary so all internal code uses a single canonical form."""
         if isinstance(block, dict):
             paramdict = {
                 "opcode": block['opcode'].upper(),

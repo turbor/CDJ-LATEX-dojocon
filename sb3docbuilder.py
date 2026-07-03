@@ -102,11 +102,11 @@ def get_json_info(filename: str):
 
 
 def buildAST(blocks, args):
-    """Builds a the list of scratch blocks.
-    They are stored in a dictionary with the block name as key, but using
-    the next,inputs and fields pointers the are in effect an Abstract Syntax Tree (AST)
+    """Convert the flat blocks dictionary from project.json into Block instances.
 
-    Note that sometimes blocks are not dicts but lists"""
+    The JSON stores blocks as a flat dict {id: block_data}. The tree structure
+    is implicit in the next/parent/inputs pointers. Block.factory() creates the
+    correct subclass for each entry, normalizing opcodes to uppercase."""
     blocksAST = {}
     for name, block in blocks.items():
         #print(f"Building AST for block {name} {block}")
