@@ -1,0 +1,22 @@
+{
+  "mijn_snelheid": {
+    "fr": "ma vitesse",
+    "en": "my speed"
+  },
+  "mijn_draai": {
+    "fr": "vitesse de rotation",
+    "en": "turn speed"
+  },
+  "balsnelheid": {
+    "fr": "vitesse du ballon",
+    "en": "ball speed"
+  },
+  "Sprite1.mijn_snelheid": {
+    "fr": "vitesse joueur 1",
+    "en": "player 1 speed"
+  },
+  "Sprite2.mijn_snelheid": {
+    "fr": "vitesse joueur 2",
+    "en": "player 2 speed"
+  }
+}

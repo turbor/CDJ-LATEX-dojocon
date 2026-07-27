@@ -49,11 +49,12 @@ class PlainRenderer(Renderer):
                     return "<>"
                 return f"( {node.value} )"
             case IRDropdown():
-                return f"| {node.value} v|"
+                val = self._translate_dropdown(node)
+                return f"| {val} v|"
             case IRVariable():
-                return "{ " + node.name + " }"
+                return "{ " + self.translate_var_name(node.name) + " }"
             case IRList():
-                return f"[ {node.name} ]"
+                return f"[ {self.translate_var_name(node.name)} ]"
             case IROperator():
                 text = self._fill_text(node.text, node.operands)
                 return f"<{text}>"

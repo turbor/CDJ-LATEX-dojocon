@@ -7,6 +7,54 @@ from ir import (IR, IRScript, IRBlock, IRCMouth, IRValue,
 class Renderer(ABC):
     """Base class for rendering IR nodes to a specific output format."""
 
+    def __init__(self):
+        self._var_translations = {}  # loaded from -t JSON file
+        self._language = "en"        # target language for variable translation
+        self._current_sprite = ""    # set before rendering each sprite
+
+    def load_var_translations(self, json_path: str, language: str):
+        """Load variable name translations from a JSON file.
+        Format: {"varname": {"fr": "nom"}, "Sprite.varname": {"fr": "override"}}
+        Sprite-specific entries (dot-notation) take priority over generic ones."""
+        import json
+        with open(json_path, encoding='utf-8') as f:
+            self._var_translations = json.load(f)
+        self._language = language
+
+    def set_current_sprite(self, sprite_name: str):
+        """Set the current sprite context for sprite-specific variable lookups."""
+        self._current_sprite = sprite_name
+
+    def translate_var_name(self, name: str) -> str:
+        """Translate a variable/list name using the loaded translation file.
+        Uses the current sprite context for lookup."""
+        return self._translate_var_for_sprite(name, self._current_sprite)
+
+    def _translate_var_for_sprite(self, name: str, sprite: str) -> str:
+        """Translate a variable/list name in the context of a specific sprite.
+        Lookup order: 'SpriteName.varname' first, then 'varname'.
+        Returns the original name if no translation is found."""
+        if not self._var_translations:
+            return name
+        # Try sprite-specific override first
+        entry = self._var_translations.get(f"{sprite}.{name}")
+        if entry and self._language in entry:
+            return entry[self._language]
+        # Fall back to generic entry
+        entry = self._var_translations.get(name)
+        if entry and self._language in entry:
+            return entry[self._language]
+        return name
+
+    def _translate_dropdown(self, node) -> str:
+        """Translate an IRDropdown value if it's a variable reference.
+        Uses ref_sprite as context when available (for 'property of sprite' blocks),
+        otherwise uses the current sprite being rendered."""
+        if not node.is_variable_ref:
+            return node.value
+        sprite = node.ref_sprite or self._current_sprite
+        return self._translate_var_for_sprite(node.value, sprite)
+
     @abstractmethod
     def render_script(self, script: IRScript, depth: int):
         """Render a complete script (chain of blocks)."""
@@ -46,7 +94,7 @@ class Renderer(ABC):
             return
         print("  Local variables:")
         for name, value in variables:
-            print(f"    {name} = {value}")
+            print(f"    {self.translate_var_name(name)} = {value}")
         for name, contents in lists:
-            print(f"    {name} (list) = {contents}")
+            print(f"    {self.translate_var_name(name)} (list) = {contents}")
         print()

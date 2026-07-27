@@ -21,7 +21,9 @@ class Monitor:
     sliderMax: int|None
     isDiscrete: bool|None
 
-    def dumpInfo(self ):
+    def dumpInfo(self, translate_name=None):
+        """Print monitor info. translate_name is an optional callable(name) -> translated_name
+        used when -t variable translations are active."""
         if self.mode == "list":
             name = self.params.get('LIST', self.id)
         elif 'VARIABLE' in self.params:
@@ -39,6 +41,9 @@ class Monitor:
                 translated = Translator().translateOpcode(dot_key)
                 if translated != dot_key:
                     name = translated
+        # Apply variable name translation if provided
+        if translate_name and self.mode in ("default", "large", "slider", "list"):
+            name = translate_name(name)
         print(f"Name: {name}")
         match self.mode:
             case "default":

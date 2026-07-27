@@ -96,6 +96,7 @@ class LatexRenderer(Renderer):
         return text.translate(self._latex_special)
 
     def __init__(self):
+        super().__init__()
         self._colors = {}  # hex -> color name mapping
         self._else_word = "else"  # default, overridden by set_else_word()
 
@@ -262,13 +263,14 @@ class LatexRenderer(Renderer):
                 return f"\\ovalnum{{{self._escape(node.value)}}}"
 
             case IRDropdown():
-                return f"\\selectmenu{{{self._escape(node.value)}}}"
+                val = self._translate_dropdown(node)
+                return f"\\selectmenu{{{self._escape(val)}}}"
 
             case IRVariable():
-                return f"\\ovalvariable{{{self._escape(node.name)}}}"
+                return f"\\ovalvariable{{{self._escape(self.translate_var_name(node.name))}}}"
 
             case IRList():
-                return f"\\ovallist{{{self._escape(node.name)}}}"
+                return f"\\ovallist{{{self._escape(self.translate_var_name(node.name))}}}"
 
             case IROperator():
                 text = self._fill_text(node.text, node.operands)
@@ -319,8 +321,8 @@ class LatexRenderer(Renderer):
         print(r"\noindent\textbf{Local variables:}")
         print(r"\begin{itemize}[nosep]")
         for name, value in variables:
-            print(f"  \\item \\ovalvariable{{{self._escape(name)}}} = {self._escape(value)}")
+            print(f"  \\item \\ovalvariable{{{self._escape(self.translate_var_name(name))}}} = {self._escape(value)}")
         for name, contents in lists:
-            print(f"  \\item \\ovallist{{{self._escape(name)}}} = {self._escape(str(contents))}")
+            print(f"  \\item \\ovallist{{{self._escape(self.translate_var_name(name))}}} = {self._escape(str(contents))}")
         print(r"\end{itemize}")
         print()

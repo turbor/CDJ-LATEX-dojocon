@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import argparse
 import os
 import re
@@ -77,6 +78,8 @@ def parse_cli_arguments():
                         help="show only this sprite (repeatable)")
     parser.add_argument("-o", "--output", default=None,
                         help="output directory for latex mode\ncreates <dir>/<name>.tex + <dir>/sprites/")
+    parser.add_argument("-t", "--translate-vars", default=None,
+                        help="JSON file with variable name translations\nformat: {\"varname\": {\"fr\": \"nom\"}, \"Sprite.var\": {\"fr\": \"override\"}}")
     parser.add_argument("-b", "--hatblocksonly", action="store_true",
                         help="only show scripts starting with a hat block")
     parser.add_argument("-v", "--verbosity", action="count", default=0,
@@ -220,6 +223,10 @@ def main(args):
 
     renderer = get_renderer(args.format)
 
+    # Load variable translations if specified
+    if args.translate_vars:
+        renderer.load_var_translations(args.translate_vars, args.language)
+
     # If -o is specified, set up output directory and redirect stdout to .tex file
     output_file = None
     if args.output and args.format == "latex":
@@ -274,7 +281,11 @@ def main(args):
         renderer.print_boxed("Monitors")
         for monitor in data['monitors']:
             monitor_object = create_monitor(monitor, args)
-            monitor_object.dumpInfo()
+            # Build a translation function that uses the monitor's owning sprite as context
+            sprite_name = monitor.get('spriteName', '') or ''
+            def make_translator(spr):
+                return lambda name: renderer._translate_var_for_sprite(name, spr)
+            monitor_object.dumpInfo(translate_name=make_translator(sprite_name))
 
         renderer.print_boxed("Targets")
 
@@ -283,6 +294,9 @@ def main(args):
     for target in data['targets']:
         if not args.sprite or target['name'] in args.sprite:
             sprite_has_image = False
+
+            # Set sprite context for variable translation lookups
+            renderer.set_current_sprite(target['name'])
 
             # Extract costumes and show first one beside the title in LaTeX output
             if args.format == "latex":

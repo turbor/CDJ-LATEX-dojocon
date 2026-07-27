@@ -39,6 +39,7 @@ python3 sb3docbuilder.py [options] <file.sb3>
 | `-f FORMAT` | Output format: `plain`, `ansi` (default), `nerdfont`, `latex` |
 | `-l LANG` | Language for block text (default: `en`). E.g. `nl`, `fr`, `de` |
 | `-s SPRITE` | Show only this sprite (repeatable for multiple sprites) |
+| `-t FILE` | JSON file with variable/list name translations (see below) |
 | `-b` | Only show scripts starting with a hat block |
 | `-o DIR` | Output directory for LaTeX mode (creates `DIR/<name>.tex` + `DIR/sprites/`) |
 | `-v` | Increase verbosity (`-v`: file list, `-vv`: AST, `-vvv`: full JSON) |
@@ -61,6 +62,9 @@ python3 sb3docbuilder.py -b -s Sprite1 project.sb3
 
 # Nerd Font enhanced output (requires FiraCode Nerd Font or similar)
 python3 sb3docbuilder.py -f nerdfont project.sb3
+
+# Translate variable names to French
+python3 sb3docbuilder.py -l fr -t examples/robocup-simpel-vars.json robocup-simpel.sb3
 ```
 
 ## Output Formats
@@ -82,6 +86,48 @@ The LaTeX renderer produces a self-contained document using the `scratch3` CTAN 
 - Operators (`\booloperator`, `\ovaloperator`), variables, lists, dropdowns
 - Color swatches via `\definecolor` + `\pencolor`
 - Sprite costume images in the top-right corner (requires inkscape for SVG conversion)
+
+## Translating Variable and List Names
+
+The `-l` flag translates Scratch block text (move, repeat, if-then, etc.) but not user-created variable and list names. The `-t` flag provides a JSON file that maps variable/list names to translated equivalents.
+
+This is useful when sharing projects across language groups: a Dutch project with variables like `snelheid` and `richting` can be rendered in French as `vitesse` and `direction`.
+
+### Translation file format
+
+```json
+{
+  "snelheid": {"fr": "vitesse", "en": "speed", "de": "Geschwindigkeit"},
+  "stappenplan": {"fr": "plan d'action", "en": "step plan"},
+  "Sprite1.snelheid": {"fr": "vitesse joueur 1"}
+}
+```
+
+Each key is a variable or list name. The value is a dict mapping language codes to translations. The `-l` flag selects which language to use.
+
+### Sprite-specific overrides
+
+When the same variable name means different things in different sprites, use `SpriteName.varname` as the key. This takes priority over the generic entry:
+
+```json
+{
+  "sentir": {"nl": "voelen"},
+  "Hond.sentir": {"nl": "ruiken"}
+}
+```
+
+In this example, `sentir` renders as "ruiken" for the Hond sprite but "voelen" everywhere else.
+
+### What gets translated
+
+- Variable blocks (`{ varname }` in output)
+- List blocks (`[ listname ]` in output)
+- Variable references in "property of sprite" dropdowns
+- Local variable listings per sprite
+
+### Example file
+
+See `examples/robocup-simpel-vars.json` for a working example with per-sprite overrides.
 
 ## Architecture
 

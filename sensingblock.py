@@ -126,22 +126,36 @@ class SensingBlock(SimpleBlock):
             # "%1 of %2" where %1 is property name, %2 is sprite/stage
             text = Translator().translateOpcode(self.opcode)
             operands = []
+
+            # Resolve %2 first (target sprite) so we can use it for variable lookup context
+            obj_input = self.inputs.get("OBJECT")
+            target_sprite = ""
+            obj_node = None
+            if obj_input:
+                obj_node = self._decode_input_value_ir(obj_input[1], blocksAST)
+                # The object node is an IRDropdown with the sprite/stage name
+                if isinstance(obj_node, IRDropdown):
+                    target_sprite = obj_node.value
+
             # %1: property field - can be a built-in (x position, size, etc.)
             # or a user-defined variable name. Built-ins have l10n keys like
             # SENSING_OF_XPOSITION; user variables should pass through as-is.
+            # User variables are marked with is_variable_ref and ref_sprite so
+            # renderers apply the correct sprite-specific translation.
             prop = self.fields.get("PROPERTY", [None])[0]
             if prop:
                 key = f"SENSING_OF_{prop.upper().replace(' ', '')}"
                 translated = Translator().translateOpcode(key)
                 # If translation returned the key unchanged, it's a user variable
                 if translated == key:
-                    operands.append(IRDropdown(value=prop))
+                    operands.append(IRDropdown(value=prop, is_variable_ref=True, ref_sprite=target_sprite))
                 else:
                     operands.append(IRDropdown(value=translated))
-            # %2: object menu input
-            obj_input = self.inputs.get("OBJECT")
-            if obj_input:
-                operands.append(self._decode_input_value_ir(obj_input[1], blocksAST))
+
+            # %2: object menu (already decoded above)
+            if obj_node:
+                operands.append(obj_node)
+
             return IROperator(opcode=self.opcode, category=self.color,
                               text=text, operands=operands)
 

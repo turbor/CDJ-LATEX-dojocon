@@ -60,19 +60,22 @@ class NerdFontRenderer(AnsiRenderer):
                 parent = self._color(parent_color)
                 return f"{parent}{white_fg}{self.ROUND_L}{white} {node.value} {parent}{white_fg}{self.ROUND_R}{parent}"
             case IRDropdown():
-                return f"| {node.value} \u25be|"
+                val = self._translate_dropdown(node)
+                return f"| {val} \u25be|"
             case IRVariable():
                 # Orange rounded pill for variables
                 var_color = self._color("mango")
                 var_fg = f"\033[38;5;{self._colorvals['mango'][1]}m"
                 parent = self._color(parent_color)
-                return f"{parent}{var_fg}{self.ROUND_L}{var_color} {node.name} {parent}{var_fg}{self.ROUND_R}{parent}"
+                name = self.translate_var_name(node.name)
+                return f"{parent}{var_fg}{self.ROUND_L}{var_color} {name} {parent}{var_fg}{self.ROUND_R}{parent}"
             case IRList():
                 # Orange rounded pill for lists
                 list_color = self._color("orange")
                 list_fg = f"\033[38;5;{self._colorvals['orange'][1]}m"
                 parent = self._color(parent_color)
-                return f"{parent}{list_fg}{self.ROUND_L}{list_color} {node.name} {parent}{list_fg}{self.ROUND_R}{parent}"
+                name = self.translate_var_name(node.name)
+                return f"{parent}{list_fg}{self.ROUND_L}{list_color} {name} {parent}{list_fg}{self.ROUND_R}{parent}"
             case IROperator():
                 # Pointed hexagonal shape using powerline separators
                 _, op_bg = self._colorvals[node.category]

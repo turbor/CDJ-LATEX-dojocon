@@ -28,6 +28,7 @@ class AnsiRenderer(Renderer):
     BLUEBG = '\033[97;44m'
 
     def __init__(self):
+        super().__init__()
         # Calculate contrasting text colors
         for key, (fg, bg) in self._colorvals.items():
             cl = int(bg) - 16
@@ -104,11 +105,12 @@ class AnsiRenderer(Renderer):
                 white = "\033[38;5;0;48;5;15m"
                 return f"{white} {node.value} {self._color(parent_color)}"
             case IRDropdown():
-                return f"| {node.value} \u25be|"
+                val = self._translate_dropdown(node)
+                return f"| {val} \u25be|"
             case IRVariable():
-                return "{ " + node.name + " }"
+                return "{ " + self.translate_var_name(node.name) + " }"
             case IRList():
-                return f"[ {node.name} ]"
+                return f"[ {self.translate_var_name(node.name)} ]"
             case IROperator():
                 color = self._color(node.category)
                 text = self._fill_text(node.text, node.operands, node.category)
@@ -150,7 +152,7 @@ class AnsiRenderer(Renderer):
         var_color = self._color("mango")
         list_color = self._color("orange")
         for name, value in variables:
-            print(f"    {var_color} {name} {self.RESET} = {value}")
+            print(f"    {var_color} {self.translate_var_name(name)} {self.RESET} = {value}")
         for name, contents in lists:
-            print(f"    {list_color} {name} {self.RESET} (list) = {contents}")
+            print(f"    {list_color} {self.translate_var_name(name)} {self.RESET} (list) = {contents}")
         print()

@@ -52,8 +52,15 @@ class IRValue(IR):
 
 @dataclass
 class IRDropdown(IR):
-    """A menu selection"""
+    """A menu selection.
+    When is_variable_ref is True, the value is a user-defined variable name
+    shown in a dropdown (e.g. in 'property of sprite'). Renderers apply
+    variable name translation (-t) to these while keeping dropdown styling.
+    ref_sprite optionally specifies which sprite the variable belongs to,
+    for correct sprite-specific translation lookups in 'property of' blocks."""
     value: str  # translated display text
+    is_variable_ref: bool = False
+    ref_sprite: str = ""  # target sprite for translation context (empty = use current)
 
 
 @dataclass
