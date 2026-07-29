@@ -1,4 +1,12 @@
 {
+  "startspel": {
+    "fr": "demarrer",
+    "en": "start game"
+  },
+  "goal": {
+    "fr": "but",
+    "en": "goal"
+  },
   "mijn_snelheid": {
     "fr": "ma vitesse",
     "en": "my speed"
@@ -10,6 +18,14 @@
   "balsnelheid": {
     "fr": "vitesse du ballon",
     "en": "ball speed"
+  },
+  "punten1": {
+    "fr": "points 1",
+    "en": "points 1"
+  },
+  "punten2": {
+    "fr": "points 2",
+    "en": "points 2"
   },
   "Sprite1.mijn_snelheid": {
     "fr": "vitesse joueur 1",

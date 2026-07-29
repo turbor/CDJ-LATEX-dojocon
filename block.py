@@ -126,7 +126,10 @@ class Block:
                 result.append(IRVariable(name=val[0]))
             elif name == "LIST":
                 result.append(IRList(name=val[0]))
-            elif name in ("BROADCAST_OPTION", "STYLE", "KEY_OPTION",
+            elif name == "BROADCAST_OPTION":
+                # Broadcasts are user-named and eligible for -t translation
+                result.append(IRDropdown(value=val[0], is_variable_ref=True, is_broadcast=True))
+            elif name in ("STYLE", "KEY_OPTION",
                           "EFFECT", "FRONT_BACK", "FORWARD_BACKWARD",
                           "BACKDROP"):
                 result.append(IRDropdown(value=val[0]))
@@ -164,7 +167,8 @@ class Block:
             elif type_id == 10:
                 return IRValue(value=str(value), kind="string")
             elif type_id == 11:
-                return IRValue(value=str(value), kind="broadcast")
+                # Broadcast names are user-defined, eligible for -t translation
+                return IRDropdown(value=str(value), is_variable_ref=True, is_broadcast=True)
             elif type_id == 12:
                 return IRVariable(name=str(value))
             elif type_id == 13:

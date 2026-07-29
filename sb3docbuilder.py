@@ -284,7 +284,7 @@ def main(args):
             # Build a translation function that uses the monitor's owning sprite as context
             sprite_name = monitor.get('spriteName', '') or ''
             def make_translator(spr):
-                return lambda name: renderer._translate_var_for_sprite(name, spr)
+                return lambda name: renderer.translate_var_name_for(name, spr)
             monitor_object.dumpInfo(translate_name=make_translator(sprite_name))
 
         renderer.print_boxed("Targets")

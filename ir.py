@@ -57,10 +57,13 @@ class IRDropdown(IR):
     shown in a dropdown (e.g. in 'property of sprite'). Renderers apply
     variable name translation (-t) to these while keeping dropdown styling.
     ref_sprite optionally specifies which sprite the variable belongs to,
-    for correct sprite-specific translation lookups in 'property of' blocks."""
+    for correct sprite-specific translation lookups in 'property of' blocks.
+    is_broadcast marks broadcast names, allowing 'broadcast.' prefix disambiguation
+    when a variable and broadcast share the same name."""
     value: str  # translated display text
     is_variable_ref: bool = False
     ref_sprite: str = ""  # target sprite for translation context (empty = use current)
+    is_broadcast: bool = False
 
 
 @dataclass

@@ -122,8 +122,22 @@ In this example, `sentir` renders as "ruiken" for the Hond sprite but "voelen" e
 
 - Variable blocks (`{ varname }` in output)
 - List blocks (`[ listname ]` in output)
+- Broadcast names (`| message v|` in output)
 - Variable references in "property of sprite" dropdowns
 - Local variable listings per sprite
+
+### Broadcast disambiguation
+
+If a variable and a broadcast share the same name but need different translations, use the `broadcast.` prefix:
+
+```json
+{
+  "start": {"fr": "debut"},
+  "broadcast.start": {"fr": "commencer"}
+}
+```
+
+The `broadcast.` prefix takes priority over the generic entry for broadcast blocks only. Variables still use the generic `"start"` entry. If there is no naming collision, the prefix is not needed.
 
 ### Example file
 
@@ -144,6 +158,7 @@ sb3 zip -> project.json -> Block.factory() -> AST -> to_ir() -> IR -> Renderer -
 
 ```
 sb3docbuilder.py       Entry point, CLI, orchestration
+sb3translate.py        Standalone tool: translate var/list/broadcast names in an sb3 file
 block.py               Core Block dataclass, factory, base IR conversion
 scratch3.py            Opcode registry (categories, colors)
 ir.py                  IR node dataclasses (IRScript, IRBlock, IRCMouth, ...)
@@ -167,6 +182,9 @@ renderers/
     ansi.py            AnsiRenderer
     nerdfont.py        NerdFontRenderer
     latex.py           LatexRenderer
+
+examples/
+    robocup-simpel-vars.json   Sample variable translation file
 ```
 
 ## References

@@ -30,16 +30,26 @@ class Renderer(ABC):
         Uses the current sprite context for lookup."""
         return self._translate_var_for_sprite(name, self._current_sprite)
 
-    def _translate_var_for_sprite(self, name: str, sprite: str) -> str:
-        """Translate a variable/list name in the context of a specific sprite.
-        Lookup order: 'SpriteName.varname' first, then 'varname'.
-        Returns the original name if no translation is found."""
+    def translate_var_name_for(self, name: str, sprite: str) -> str:
+        """Translate a variable/list/broadcast name in a given sprite context.
+        Public interface for callers outside the renderer (e.g. monitor output)."""
+        return self._translate_var_for_sprite(name, sprite)
+
+    def _translate_var_for_sprite(self, name: str, sprite: str, is_broadcast: bool = False) -> str:
+        """Translate a variable/list/broadcast name in the context of a specific sprite.
+        Lookup order: 'SpriteName.varname' first, then 'broadcast.name' for broadcasts,
+        then 'varname'. Returns the original name if no translation is found."""
         if not self._var_translations:
             return name
         # Try sprite-specific override first
         entry = self._var_translations.get(f"{sprite}.{name}")
         if entry and self._language in entry:
             return entry[self._language]
+        # For broadcasts, try "broadcast.name" prefix before generic fallback
+        if is_broadcast:
+            entry = self._var_translations.get(f"broadcast.{name}")
+            if entry and self._language in entry:
+                return entry[self._language]
         # Fall back to generic entry
         entry = self._var_translations.get(name)
         if entry and self._language in entry:
@@ -53,7 +63,7 @@ class Renderer(ABC):
         if not node.is_variable_ref:
             return node.value
         sprite = node.ref_sprite or self._current_sprite
-        return self._translate_var_for_sprite(node.value, sprite)
+        return self._translate_var_for_sprite(node.value, sprite, is_broadcast=node.is_broadcast)
 
     @abstractmethod
     def render_script(self, script: IRScript, depth: int):
