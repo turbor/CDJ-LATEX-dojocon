@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Translate variable and list names in a Scratch .sb3 file.
+Translate variable, list, broadcast, and sprite names in a Scratch .sb3 file.
 
 Reads a translation JSON file (same format as sb3docbuilder's -t flag)
-and produces a new .sb3 with all variable/list names replaced.
+and produces a new .sb3 with all names replaced.
 
 Usage:
     python3 sb3translate.py <input.sb3> <translations.json> <language> <output.sb3>
@@ -14,10 +14,15 @@ Example:
 Translation file format:
     {
       "snelheid": {"fr": "vitesse", "en": "speed"},
-      "Sprite1.snelheid": {"fr": "vitesse joueur 1"}
+      "Sprite1.snelheid": {"fr": "vitesse joueur 1"},
+      "broadcast.start": {"fr": "commencer"},
+      "sprite.Soccer Ball": {"fr": "Ballon de foot"}
     }
 
-Sprite-specific overrides (SpriteName.varname) take priority over generic entries.
+Prefixes:
+    SpriteName.varname  - sprite-specific variable override
+    broadcast.name      - broadcast-specific (when a var and broadcast share a name)
+    sprite.name         - rename a sprite (updates all references)
 """
 
 import sys
@@ -66,10 +71,25 @@ def translate_name(name: str, sprite: str, translations: dict, is_broadcast: boo
 
 
 def translate_project(data: dict, translations: dict):
-    """Translate all variable/list name references in project.json in-place."""
-    # Translate monitors
+    """Translate all variable/list/broadcast/sprite name references in project.json in-place."""
+    # Build sprite name mapping: old_name -> new_name
+    sprite_renames = {}
+    for target in data.get('targets', []):
+        if not target['isStage']:
+            new_name = translations.get(('sprite', target['name']))
+            if new_name:
+                sprite_renames[target['name']] = new_name
+
+    # Rename sprites in target definitions
+    for target in data.get('targets', []):
+        if target['name'] in sprite_renames:
+            target['name'] = sprite_renames[target['name']]
+
+    # Translate monitors (update spriteName references too)
     for monitor in data.get('monitors', []):
         sprite = monitor.get('spriteName') or ''
+        if sprite in sprite_renames:
+            monitor['spriteName'] = sprite_renames[sprite]
         if 'VARIABLE' in monitor.get('params', {}):
             monitor['params']['VARIABLE'] = translate_name(
                 monitor['params']['VARIABLE'], sprite, translations)
@@ -77,13 +97,20 @@ def translate_project(data: dict, translations: dict):
             monitor['params']['LIST'] = translate_name(
                 monitor['params']['LIST'], sprite, translations)
 
-    # Translate each target (sprite/stage)
+    # Translate each target (variables, lists, broadcasts, blocks)
     for target in data.get('targets', []):
-        sprite = target['name'] if not target['isStage'] else ''
-        translate_target(target, sprite, translations)
+        # Use the ORIGINAL sprite name for variable translation context
+        # (the translation keys reference original names)
+        orig_name = target['name']
+        for old, new in sprite_renames.items():
+            if new == orig_name:
+                orig_name = old
+                break
+        sprite = orig_name if not target['isStage'] else ''
+        translate_target(target, sprite, translations, sprite_renames)
 
 
-def translate_target(target: dict, sprite: str, translations: dict):
+def translate_target(target: dict, sprite: str, translations: dict, sprite_renames: dict):
     """Translate variable/list names within a single target."""
     # 1. Variable definitions: {id: [name, value]}
     for vid, val in target.get('variables', {}).items():
@@ -106,10 +133,10 @@ def translate_target(target: dict, sprite: str, translations: dict):
             if block[0] in (12, 13) and len(block) >= 2:
                 block[1] = translate_name(block[1], sprite, translations)
         elif isinstance(block, dict):
-            translate_block(block, sprite, translations, blocks)
+            translate_block(block, sprite, translations, blocks, sprite_renames)
 
 
-def translate_block(block: dict, sprite: str, translations: dict, all_blocks: dict):
+def translate_block(block: dict, sprite: str, translations: dict, all_blocks: dict, sprite_renames: dict):
     """Translate variable/list/broadcast references within a single block."""
     # Fields: VARIABLE and LIST hold [name, id], BROADCAST_OPTION holds [name, id]
     fields = block.get('fields', {})
@@ -120,6 +147,16 @@ def translate_block(block: dict, sprite: str, translations: dict, all_blocks: di
     if 'BROADCAST_OPTION' in fields:
         # Broadcasts are global - no sprite context needed
         fields['BROADCAST_OPTION'][0] = translate_name(fields['BROADCAST_OPTION'][0], '', translations, is_broadcast=True)
+
+    # Sprite name references in menu fields
+    # These appear in goto/glideto/pointtowards/touching/distanceto/clone/sensing_of menus
+    for field_name in ('OBJECT', 'TO', 'TOWARDS', 'TOUCHINGOBJECTMENU',
+                       'DISTANCETOMENU', 'CLONE_OPTION'):
+        if field_name in fields:
+            val = fields[field_name][0]
+            if val in sprite_renames:
+                fields[field_name][0] = sprite_renames[val]
+
     # PROPERTY field in sensing_of blocks references another sprite's variable.
     # Translate using the target sprite from the OBJECT shadow block.
     if 'PROPERTY' in fields and block.get('opcode') == 'sensing_of':

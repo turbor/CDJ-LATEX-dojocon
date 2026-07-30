@@ -79,7 +79,7 @@ def parse_cli_arguments():
     parser.add_argument("-o", "--output", default=None,
                         help="output directory for latex mode\ncreates <dir>/<name>.tex + <dir>/sprites/")
     parser.add_argument("-t", "--translate-vars", default=None,
-                        help="JSON file with variable name translations\nformat: {\"varname\": {\"fr\": \"nom\"}, \"Sprite.var\": {\"fr\": \"override\"}}")
+                        help="JSON file with variable/list/broadcast name translations\nSprite names are not translated (use sb3translate.py for that)\nNote: Scratch uses English default names regardless of UI language")
     parser.add_argument("-b", "--hatblocksonly", action="store_true",
                         help="only show scripts starting with a hat block")
     parser.add_argument("-v", "--verbosity", action="count", default=0,

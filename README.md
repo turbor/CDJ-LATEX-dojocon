@@ -139,6 +139,21 @@ If a variable and a broadcast share the same name but need different translation
 
 The `broadcast.` prefix takes priority over the generic entry for broadcast blocks only. Variables still use the generic `"start"` entry. If there is no naming collision, the prefix is not needed.
 
+### Sprite name translation (sb3translate.py only)
+
+Sprite names can be translated using the `sprite.` prefix. This is only supported by `sb3translate.py` (which rewrites the sb3 file), not by `sb3docbuilder.py` (which only renders).
+
+```json
+{
+  "sprite.Soccer Ball": {"fr": "Ballon de foot"},
+  "sprite.Sprite1": {"fr": "Joueur 1"}
+}
+```
+
+All references to the sprite (in "touching", "go to", "clone of", "property of" blocks) are updated automatically.
+
+Note: Scratch uses English default names (Sprite1, costume1, backdrop1) regardless of the interface language selected.
+
 ### Example file
 
 See `examples/robocup-simpel-vars.json` for a working example with per-sprite overrides.
