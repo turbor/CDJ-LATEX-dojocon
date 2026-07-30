@@ -158,6 +158,40 @@ Note: Scratch uses English default names (Sprite1, costume1, backdrop1) regardle
 
 See `examples/robocup-simpel-vars.json` for a working example with per-sprite overrides.
 
+## Rewriting an sb3 File (sb3translate.py)
+
+While `sb3docbuilder.py` only translates names at render time (the original sb3 is unchanged), `sb3translate.py` produces a new sb3 file with all names permanently replaced. The translated file can be opened in Scratch with the new names.
+
+```
+python3 sb3translate.py <input.sb3> <translations.json> <language> <output.sb3>
+```
+
+### Example
+
+```bash
+python3 sb3translate.py robocup.sb3 vars.json fr robocup-fr.sb3
+```
+
+### What sb3translate rewrites
+
+- Variable and list definitions and all references
+- Broadcast definitions and all send/receive blocks
+- Sprite names and all references (touching, go-to, clone-of, property-of)
+- Monitor display names
+
+### Sprite name translation
+
+Use the `sprite.` prefix to rename sprites:
+
+```json
+{
+  "sprite.Soccer Ball": {"fr": "Ballon de foot"},
+  "sprite.Sprite1": {"fr": "Joueur 1"}
+}
+```
+
+This is only supported in `sb3translate.py` because renaming sprites requires rewriting the sb3 file - the `SpriteName.variable` translation keys reference original sprite names, so renaming at render time would break the lookup chain.
+
 ## Architecture
 
 Two-phase pipeline:

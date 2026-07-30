@@ -228,6 +228,10 @@ def main():
                     zout.writestr(item, json.dumps(data))
                 else:
                     zout.writestr(item, zin.read(item.filename))
+            zout.comment = (
+                f"Translated by sb3translate.py (lang={language})\n"
+                f"https://github.com/turbor/CDJ-LATEX-dojocon"
+            ).encode('utf-8')
 
     print(f"Translated sb3 written to {output_sb3}")
 
