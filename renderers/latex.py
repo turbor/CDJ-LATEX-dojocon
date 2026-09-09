@@ -67,7 +67,7 @@ class LatexRenderer(Renderer):
         '$': r'\$',
         '%': r'\%',
         '&': r'\&',
-        '_': r'\_',
+        '_': r'\string_',
         '{': r'\{',
         '}': r'\}',
         '~': r'\textasciitilde{}',
