@@ -1,7 +1,8 @@
 import os
 import re
 from ir import (IR, IRScript, IRBlock, IRCMouth, IRValue,
-                IRDropdown, IRVariable, IRList, IROperator, IRHatBlock)
+                IRDropdown, IRVariable, IRList, IROperator, IRHatBlock,
+                IRDefineHat, IRProcedurePrototype)
 from renderers.base import Renderer
 
 
@@ -180,6 +181,18 @@ class LatexRenderer(Renderer):
                 if node.opcode in self._clone_hat_opcodes:
                     return f"{indent}\\blockinitclone{{{text}}}"
                 return f"{indent}\\blockinit{{{text}}}"
+
+            case IRDefineHat():
+                # Custom block definition: pink define hat with the prototype
+                # shown as a dented block shape via \namemoreblocks.
+                proto = self._escape(node.prototype.text) if isinstance(node.prototype, IRProcedurePrototype) else ""
+                name_cmd = f"\\namemoreblocks{{{proto}}}"
+                # Escape the static parts of "define %1" but not the inserted command.
+                # Split on %1 so the escaper never touches the LaTeX command.
+                parts = node.text.split("%1")
+                escaped_parts = [self._escape(p) for p in parts]
+                text = name_cmd.join(escaped_parts)
+                return f"{indent}\\initmoreblocks{{{text}}}"
 
             case IRCMouth():
                 return self._render_cmouth(node, depth)

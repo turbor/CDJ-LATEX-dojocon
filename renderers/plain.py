@@ -1,5 +1,6 @@
 from ir import (IR, IRScript, IRBlock, IRCMouth, IRValue,
-                IRDropdown, IRVariable, IRList, IROperator, IRHatBlock)
+                IRDropdown, IRVariable, IRList, IROperator, IRHatBlock,
+                IRDefineHat, IRProcedurePrototype)
 from renderers.base import Renderer
 
 
@@ -15,6 +16,10 @@ class PlainRenderer(Renderer):
         match node:
             case IRHatBlock():
                 text = self._fill_text(node.text, node.inputs)
+                return f"{indent} {text} "
+            case IRDefineHat():
+                proto = node.prototype.text if isinstance(node.prototype, IRProcedurePrototype) else ""
+                text = node.text.replace("%1", f"< {proto} >")
                 return f"{indent} {text} "
             case IRCMouth():
                 lines = []

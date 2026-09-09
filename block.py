@@ -7,6 +7,7 @@ from scratch3 import SCRATCH3, OPCODE_TO_CATEGORY
 from translator import Translator
 from ir import (IR, IRScript, IRBlock, IRCMouth, IRValue,
                 IRDropdown, IRVariable, IRList, IROperator, IRHatBlock,
+                IRDefineHat, IRProcedurePrototype,
                 build_ir_script)
 
 
@@ -536,33 +537,41 @@ class ListBlock(Block):
 class MyBlock(Block):
     """Custom block (My Blocks) - procedures definition and call."""
 
+    def _prototype_text(self) -> str:
+        """Build the custom block label from a prototype mutation:
+        proccode with %s/%b markers replaced by their argument names as ( name )."""
+        result = self.mutation["proccode"]
+        c = count(0)
+        arg_names = json.loads(self.mutation["argumentnames"])
+        def replace_param(match):
+            return f"( {arg_names[next(c)]} )"
+        return re.sub(r'%[sb]', replace_param, result)
+
     def shadow_to_ir(self, blocksAST: dict) -> IR:
-        """When used as shadow (PROCEDURES_PROTOTYPE), decode the proccode."""
+        """When used as shadow (PROCEDURES_PROTOTYPE), decode the proccode
+        into a procedure prototype (dented block shape with name + args)."""
         if self.opcode == "PROCEDURES_PROTOTYPE":
-            result = self.mutation["proccode"]
-            c = count(0)
-            def replace_param(match):
-                arg_name = json.loads(self.mutation["argumentnames"])[next(c)]
-                return f"( {arg_name} )"
-            return IRDropdown(value=re.sub(r'%[sb]', replace_param, result))
+            return IRProcedurePrototype(text=self._prototype_text())
         # ARGUMENT_REPORTER_STRING_NUMBER / ARGUMENT_REPORTER_BOOLEAN
         if 'VALUE' in self.fields:
             return IRValue(value=self.fields['VALUE'][0], kind="argument")
         return IRDropdown(value=self.opcode)
 
     def to_ir(self, blocksAST: dict) -> IR:
-        """PROCEDURES_DEFINITION uses the 'define %1' translation.
+        """PROCEDURES_DEFINITION renders as a pink 'define' hat block containing
+        the custom block prototype (name + argument shapes).
         PROCEDURES_CALL uses the proccode with %s/%b markers converted to
         positional placeholders and arguments decoded in argumentids order."""
-        text = self._get_translated_text()
-        inputs_ir = self._decode_inputs_ir(blocksAST)
-        fields_ir = self._decode_fields_ir(blocksAST)
-        all_params = [*fields_ir, *inputs_ir]
-
-        # PROCEDURES_DEFINITION is a hat block (rounded top)
+        # PROCEDURES_DEFINITION: pink define hat with the prototype inside
         if self.opcode == "PROCEDURES_DEFINITION":
-            return IRHatBlock(opcode=self.opcode, category=self.color,
-                              text=text, inputs=all_params)
+            text = self._get_translated_text()  # "define %1"
+            # The prototype is a shadow block referenced by the custom_block input
+            proto_id = self.inputs.get('custom_block', [None, None])[1]
+            if proto_id is not None:
+                prototype = blocksAST[proto_id].shadow_to_ir(blocksAST)
+            else:
+                prototype = IRProcedurePrototype(text="")
+            return IRDefineHat(category=self.color, text=text, prototype=prototype)
 
         # PROCEDURES_CALL: proccode contains %s (string/number) and %b (boolean)
         # markers which we convert to %1, %2, ... for the renderer to fill in.
@@ -580,6 +589,10 @@ class MyBlock(Block):
             return IRBlock(opcode=self.opcode, category=self.color,
                            text=text, inputs=ordered_inputs, fields=[])
 
+        text = self._get_translated_text()
+        inputs_ir = self._decode_inputs_ir(blocksAST)
+        fields_ir = self._decode_fields_ir(blocksAST)
+        all_params = [*fields_ir, *inputs_ir]
         return IRBlock(opcode=self.opcode, category=self.color,
                        text=text, inputs=all_params, fields=[])
 

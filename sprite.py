@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from block import Block
-from ir import build_ir_script, IRScript, IRHatBlock
+from ir import build_ir_script, IRScript, IRHatBlock, IRDefineHat
 
 @dataclass
 class Sprite:
@@ -33,7 +33,7 @@ class Sprite:
         for name, block in self.blocksAST.items():
             if block.topLevel:
                 script = build_ir_script(block, self.blocksAST)
-                if args.hatblocksonly and (not script.blocks or not isinstance(script.blocks[0], IRHatBlock)):
+                if args.hatblocksonly and (not script.blocks or not isinstance(script.blocks[0], (IRHatBlock, IRDefineHat))):
                     continue
                 scripts.append(script)
         return scripts

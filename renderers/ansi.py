@@ -1,5 +1,6 @@
 from ir import (IR, IRScript, IRBlock, IRCMouth, IRValue,
-                IRDropdown, IRVariable, IRList, IROperator, IRHatBlock)
+                IRDropdown, IRVariable, IRList, IROperator, IRHatBlock,
+                IRDefineHat, IRProcedurePrototype)
 from renderers.base import Renderer
 
 
@@ -59,6 +60,11 @@ class AnsiRenderer(Renderer):
             case IRHatBlock():
                 color = self._color(node.category)
                 text = self._fill_text(node.text, node.inputs, node.category)
+                return f"{indent}{color} {text} {self.RESET}"
+            case IRDefineHat():
+                color = self._color(node.category)
+                proto = node.prototype.text if isinstance(node.prototype, IRProcedurePrototype) else ""
+                text = node.text.replace("%1", f"< {proto} >")
                 return f"{indent}{color} {text} {self.RESET}"
             case IRCMouth():
                 lines = []

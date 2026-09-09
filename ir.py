@@ -93,6 +93,25 @@ class IRHatBlock(IR):
     inputs: list[IR]
 
 
+@dataclass
+class IRDefineHat(IR):
+    """The 'define' hat block for a custom block (My Blocks / procedures_definition).
+    Rendered differently from event hats: pink 'moreblocks' color, with the
+    custom block name+parameters shown in a dented block shape (not a dropdown).
+    prototype holds the custom block's name and argument placeholders."""
+    category: str
+    text: str          # the translated "define %1" template
+    prototype: IR      # IRProcedurePrototype for the %1 placeholder
+
+
+@dataclass
+class IRProcedurePrototype(IR):
+    """A custom block's name and argument shape, shown inside a define hat
+    or as the label of the block being defined. Rendered as a dented block
+    shape (\\namemoreblocks in LaTeX), not a dropdown."""
+    text: str          # proccode with %s/%b converted, args shown as ( name )
+
+
 def build_ir_script(block, blocksAST: dict) -> IRScript:
     """Walk a chain of blocks (following 'next' pointers) and return an IRScript.
     Each block's to_ir() method produces the appropriate IR node."""
